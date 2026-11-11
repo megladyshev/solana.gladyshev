@@ -1,0 +1,1 @@
+# Scheduled events: no call within ±2 h. One per line, UTC: 2026-12-10T19:00Z FOMC
