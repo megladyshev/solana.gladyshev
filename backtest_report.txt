@@ -1,146 +1,54 @@
 
 === horizon 1h ===
-LR all       SELECT  hit 56.0% (z +7.0, n 3331) · cover 30% · all 53.2% · BSS +0.007 · PnL -6.80
-             HOLDOUT hit 53.5% (z +4.0, n 3356) · cover 26% · all 51.7% · BSS -0.000 · PnL -8.46
-HGB all      SELECT  hit 57.3% (z +6.7, n 2131) · cover 20% · all 53.4% · BSS +0.003 · PnL -4.71
-             HOLDOUT hit 53.2% (z +3.7, n 3296) · cover 26% · all 52.2% · BSS +0.001 · PnL -8.57
-LR only A    SELECT  hit 55.7% (z +8.7, n 5838) · cover 29% · all 53.0% · BSS +0.005 · PnL -13.69
-             HOLDOUT hit 53.1% (z +3.7, n 3660) · cover 28% · all 52.0% · BSS +0.001 · PnL -9.43
-LR all−A     SELECT  hit 54.4% (z +5.1, n 3293) · cover 31% · all 52.4% · BSS +0.004 · PnL -7.00
-             HOLDOUT hit 52.3% (z +2.6, n 3179) · cover 25% · all 51.5% · BSS -0.000 · PnL -8.70
-LR only B    SELECT  hit 50.9% (z +1.1, n 4058) · cover 31% · all 50.7% · BSS -0.000 · PnL -11.22
-             HOLDOUT hit 50.3% (z +0.3, n 2876) · cover 24% · all 50.4% · BSS -0.000 · PnL -8.69
-LR all−B     SELECT  hit 56.3% (z +7.0, n 3141) · cover 29% · all 52.9% · BSS +0.006 · PnL -6.46
-             HOLDOUT hit 52.9% (z +3.5, n 3482) · cover 27% · all 51.6% · BSS -0.000 · PnL -8.94
-LR only C    SELECT  hit 50.2% (z +0.2, n 5972) · cover 32% · all 50.1% · BSS -0.000 · PnL -15.88
-             HOLDOUT hit 50.0% (z -0.0, n 2265) · cover 19% · all 49.7% · BSS -0.000 · PnL -6.07
-LR all−C     SELECT  hit 56.5% (z +7.6, n 3334) · cover 30% · all 53.4% · BSS +0.007 · PnL -6.72
-             HOLDOUT hit 53.3% (z +3.8, n 3398) · cover 26% · all 51.6% · BSS -0.000 · PnL -8.89
-LR only D    SELECT  hit 52.2% (z +3.4, n 5874) · cover 31% · all 50.9% · BSS +0.000 · PnL -16.22
-             HOLDOUT hit 52.2% (z +2.5, n 3237) · cover 26% · all 50.8% · BSS +0.000 · PnL -8.40
-LR all−D     SELECT  hit 56.3% (z +7.4, n 3439) · cover 32% · all 53.1% · BSS +0.007 · PnL -7.27
-             HOLDOUT hit 53.3% (z +3.9, n 3453) · cover 27% · all 51.7% · BSS -0.000 · PnL -8.43
-LR only E    SELECT  hit 54.3% (z +6.4, n 5476) · cover 27% · all 52.6% · BSS +0.003 · PnL -12.37
-             HOLDOUT hit 53.0% (z +3.6, n 3626) · cover 28% · all 51.9% · BSS +0.000 · PnL -9.28
-LR all−E     SELECT  hit 56.4% (z +7.4, n 3287) · cover 30% · all 53.3% · BSS +0.007 · PnL -6.40
-             HOLDOUT hit 53.4% (z +3.9, n 3346) · cover 26% · all 51.9% · BSS -0.000 · PnL -8.34
-LR only F    SELECT  hit 50.5% (z +0.3, n 1071) · cover 11% · all 49.0% · BSS -0.000 · PnL -3.48
-             HOLDOUT hit 49.4% (z -0.8, n 4679) · cover 40% · all 49.6% · BSS -0.000 · PnL -13.85
-LR all−F     SELECT  hit 56.5% (z +7.5, n 3392) · cover 25% · all 52.8% · BSS +0.004 · PnL -6.77
-             HOLDOUT hit 54.0% (z +4.7, n 3413) · cover 27% · all 51.3% · BSS -0.000 · PnL -8.28
-LR only G    SELECT  hit 49.9% (z -0.1, n 3778) · cover 20% · all 50.5% · BSS +0.000 · PnL -10.48
-             HOLDOUT hit 49.9% (z -0.1, n 3947) · cover 33% · all 50.4% · BSS -0.000 · PnL -10.90
-LR all−G     SELECT  hit 56.0% (z +6.9, n 3377) · cover 31% · all 53.4% · BSS +0.007 · PnL -6.98
-             HOLDOUT hit 53.5% (z +4.1, n 3372) · cover 26% · all 51.8% · BSS -0.000 · PnL -8.40
-baselines HOLDOUT: {'always up': '50.2%', 'same as last 1h': '48.5%', 'week trend': '49.6%'}
-→ chosen on SELECT: LR all−E
+HAR (V)  SELECT  R² vs typical +0.417 · vs last +0.292 · band 80% → 79% · storm BSS +0.277 (20% storms) · top/bottom fifth ×3.18 · n 25557
+         HOLDOUT R² vs typical +0.366 · vs last +0.266 · band 80% → 78% · storm BSS +0.207 (19% storms) · top/bottom fifth ×3.06 · n 16316
+V+T      SELECT  R² vs typical +0.437 · vs last +0.317 · band 80% → 79% · storm BSS +0.289 (20% storms) · top/bottom fifth ×3.27 · n 25557
+         HOLDOUT R² vs typical +0.397 · vs last +0.301 · band 80% → 79% · storm BSS +0.228 (19% storms) · top/bottom fifth ×3.17 · n 16316
+V+T+E    SELECT  R² vs typical +0.437 · vs last +0.317 · band 80% → 79% · storm BSS +0.288 (20% storms) · top/bottom fifth ×3.27 · n 25557
+         HOLDOUT R² vs typical +0.399 · vs last +0.303 · band 80% → 79% · storm BSS +0.228 (19% storms) · top/bottom fifth ×3.17 · n 16316
+all      SELECT  R² vs typical +0.423 · vs last +0.324 · band 80% → 82% · storm BSS +0.302 (22% storms) · top/bottom fifth ×3.09 · n 13903
+         HOLDOUT R² vs typical +0.412 · vs last +0.318 · band 80% → 79% · storm BSS +0.239 (19% storms) · top/bottom fifth ×3.20 · n 16308
+HGB all  SELECT  R² vs typical +0.430 · vs last +0.332 · band 80% → 80% · storm BSS +0.308 (22% storms) · top/bottom fifth ×3.12 · n 13903
+         HOLDOUT R² vs typical +0.421 · vs last +0.329 · band 80% → 77% · storm BSS +0.250 (19% storms) · top/bottom fifth ×3.25 · n 16308
+→ chosen on SELECT: V+T
 
 === horizon 4h ===
-LR all       SELECT  hit 55.6% (z +3.1, n 759) · cover 28% · all 52.4% · BSS +0.003 · PnL -0.93
-             HOLDOUT hit 52.3% (z +1.4, n 831) · cover 27% · all 51.6% · BSS -0.003 · PnL -2.65
-HGB all      SELECT  hit 58.5% (z +4.4, n 668) · cover 25% · all 54.0% · BSS +0.001 · PnL +0.04
-             HOLDOUT hit 54.8% (z +2.7, n 812) · cover 27% · all 52.0% · BSS -0.004 · PnL -1.29
-LR only A    SELECT  hit 55.9% (z +4.1, n 1184) · cover 24% · all 53.0% · BSS +0.005 · PnL -2.10
-             HOLDOUT hit 53.3% (z +1.9, n 890) · cover 28% · all 50.2% · BSS -0.001 · PnL -2.64
-LR all−A     SELECT  hit 53.8% (z +2.1, n 809) · cover 30% · all 53.1% · BSS +0.003 · PnL -1.54
-             HOLDOUT hit 52.9% (z +1.7, n 814) · cover 27% · all 51.6% · BSS -0.001 · PnL -2.26
-LR only B    SELECT  hit 50.9% (z +0.5, n 868) · cover 27% · all 51.2% · BSS -0.002 · PnL -2.70
-             HOLDOUT hit 51.3% (z +0.7, n 686) · cover 24% · all 50.6% · BSS -0.000 · PnL -2.51
-LR all−B     SELECT  hit 55.0% (z +2.8, n 794) · cover 29% · all 53.3% · BSS +0.006 · PnL -1.49
-             HOLDOUT hit 52.1% (z +1.2, n 866) · cover 28% · all 50.9% · BSS -0.003 · PnL -2.64
-LR only C    SELECT  hit 50.4% (z +0.3, n 1101) · cover 23% · all 49.7% · BSS -0.000 · PnL -2.84
-             HOLDOUT hit 48.1% (z -1.1, n 826) · cover 27% · all 49.8% · BSS -0.000 · PnL -2.69
-LR all−C     SELECT  hit 56.4% (z +3.6, n 776) · cover 29% · all 52.5% · BSS +0.004 · PnL -0.68
-             HOLDOUT hit 52.4% (z +1.4, n 823) · cover 27% · all 51.8% · BSS -0.003 · PnL -2.78
-LR only D    SELECT  hit 52.6% (z +1.9, n 1444) · cover 30% · all 51.5% · BSS +0.000 · PnL -3.60
-             HOLDOUT hit 52.1% (z +1.2, n 756) · cover 25% · all 51.0% · BSS +0.000 · PnL -2.33
-LR all−D     SELECT  hit 58.3% (z +4.6, n 758) · cover 28% · all 52.5% · BSS +0.004 · PnL -0.11
-             HOLDOUT hit 53.1% (z +1.8, n 859) · cover 28% · all 51.8% · BSS -0.002 · PnL -2.41
-LR only E    SELECT  hit 54.8% (z +3.5, n 1310) · cover 26% · all 53.5% · BSS +0.005 · PnL -3.63
-             HOLDOUT hit 52.2% (z +1.3, n 885) · cover 28% · all 52.5% · BSS -0.001 · PnL -2.38
-LR all−E     SELECT  hit 54.4% (z +2.4, n 732) · cover 27% · all 52.6% · BSS +0.002 · PnL -1.18
-             HOLDOUT hit 51.4% (z +0.8, n 840) · cover 28% · all 51.5% · BSS -0.002 · PnL -3.32
-LR only F    SELECT  hit 50.6% (z +0.2, n 328) · cover 13% · all 48.4% · BSS -0.002 · PnL -1.45
-             HOLDOUT hit 49.1% (z -0.5, n 585) · cover 20% · all 49.4% · BSS -0.000 · PnL -2.06
-LR all−F     SELECT  hit 55.9% (z +3.1, n 714) · cover 21% · all 52.4% · BSS -0.003 · PnL -0.78
-             HOLDOUT hit 51.9% (z +1.1, n 829) · cover 27% · all 52.5% · BSS -0.002 · PnL -3.23
-LR only G    SELECT  hit 51.3% (z +1.0, n 1371) · cover 28% · all 50.7% · BSS +0.000 · PnL -2.76
-             HOLDOUT hit 47.6% (z -1.3, n 679) · cover 23% · all 49.7% · BSS -0.001 · PnL -3.00
-LR all−G     SELECT  hit 55.6% (z +3.1, n 735) · cover 27% · all 52.5% · BSS +0.004 · PnL -0.68
-             HOLDOUT hit 50.1% (z +0.1, n 816) · cover 26% · all 51.9% · BSS -0.003 · PnL -3.23
-baselines HOLDOUT: {'always up': '50.2%', 'same as last 4h': '49.8%', 'week trend': '50.1%'}
-→ chosen on SELECT: LR all−B
+HAR (V)  SELECT  R² vs typical +0.350 · vs last +0.357 · band 80% → 78% · storm BSS +0.231 (21% storms) · top/bottom fifth ×2.85 · n 6390
+         HOLDOUT R² vs typical +0.263 · vs last +0.346 · band 80% → 77% · storm BSS +0.146 (19% storms) · top/bottom fifth ×2.64 · n 4079
+V+T      SELECT  R² vs typical +0.395 · vs last +0.401 · band 80% → 79% · storm BSS +0.253 (21% storms) · top/bottom fifth ×3.02 · n 6390
+         HOLDOUT R² vs typical +0.335 · vs last +0.409 · band 80% → 78% · storm BSS +0.193 (19% storms) · top/bottom fifth ×2.81 · n 4079
+V+T+E    SELECT  R² vs typical +0.395 · vs last +0.401 · band 80% → 79% · storm BSS +0.252 (21% storms) · top/bottom fifth ×3.03 · n 6390
+         HOLDOUT R² vs typical +0.338 · vs last +0.412 · band 80% → 79% · storm BSS +0.193 (19% storms) · top/bottom fifth ×2.82 · n 4079
+all      SELECT  R² vs typical +0.370 · vs last +0.414 · band 80% → 81% · storm BSS +0.261 (23% storms) · top/bottom fifth ×2.88 · n 3478
+         HOLDOUT R² vs typical +0.358 · vs last +0.430 · band 80% → 78% · storm BSS +0.209 (19% storms) · top/bottom fifth ×2.88 · n 4077
+HGB all  SELECT  R² vs typical +0.365 · vs last +0.410 · band 80% → 77% · storm BSS +0.256 (23% storms) · top/bottom fifth ×2.81 · n 3478
+         HOLDOUT R² vs typical +0.373 · vs last +0.443 · band 80% → 77% · storm BSS +0.230 (19% storms) · top/bottom fifth ×2.98 · n 4077
+→ chosen on SELECT: V+T
 
 === horizon 12h ===
-LR all       SELECT  hit 56.0% (z +1.9, n 241) · cover 29% · all 51.8% · BSS -0.013 · PnL -0.10
-             HOLDOUT hit 49.0% (z -0.4, n 290) · cover 27% · all 50.4% · BSS -0.013 · PnL -0.91
-HGB all      SELECT  hit 54.3% (z +1.3, n 223) · cover 26% · all 51.5% · BSS -0.033 · PnL -0.11
-             HOLDOUT hit 55.4% (z +1.7, n 260) · cover 25% · all 49.5% · BSS -0.020 · PnL +0.10
-LR only A    SELECT  hit 48.0% (z -0.7, n 271) · cover 16% · all 50.4% · BSS -0.008 · PnL -1.09
-             HOLDOUT hit 49.3% (z -0.2, n 294) · cover 28% · all 50.9% · BSS -0.004 · PnL -1.08
-LR all−A     SELECT  hit 55.1% (z +1.7, n 267) · cover 31% · all 52.9% · BSS -0.004 · PnL -0.14
-             HOLDOUT hit 49.6% (z -0.1, n 282) · cover 26% · all 50.0% · BSS -0.010 · PnL -0.96
-LR only B    SELECT  hit 48.4% (z -0.5, n 225) · cover 20% · all 48.3% · BSS -0.009 · PnL -0.21
-             HOLDOUT hit 47.5% (z -0.9, n 343) · cover 35% · all 49.1% · BSS -0.001 · PnL -1.10
-LR all−B     SELECT  hit 50.6% (z +0.2, n 267) · cover 32% · all 51.8% · BSS -0.012 · PnL -1.01
-             HOLDOUT hit 51.5% (z +0.5, n 295) · cover 28% · all 47.9% · BSS -0.012 · PnL -0.60
-LR only C    SELECT  hit 46.9% (z -1.2, n 358) · cover 24% · all 48.0% · BSS -0.003 · PnL -1.77
-             HOLDOUT hit 51.7% (z +0.7, n 429) · cover 41% · all 51.6% · BSS -0.000 · PnL -0.67
-LR all−C     SELECT  hit 54.5% (z +1.4, n 244) · cover 29% · all 51.9% · BSS -0.009 · PnL -0.40
-             HOLDOUT hit 46.8% (z -1.1, n 280) · cover 26% · all 51.2% · BSS -0.012 · PnL -1.35
-LR only D    SELECT  hit 54.3% (z +1.8, n 429) · cover 28% · all 51.8% · BSS +0.002 · PnL -1.06
-             HOLDOUT hit 48.8% (z -0.3, n 209) · cover 21% · all 48.1% · BSS -0.006 · PnL -0.99
-LR all−D     SELECT  hit 50.6% (z +0.2, n 241) · cover 27% · all 51.4% · BSS -0.017 · PnL -0.95
-             HOLDOUT hit 53.6% (z +1.3, n 317) · cover 30% · all 51.2% · BSS -0.007 · PnL -0.32
-LR only E    SELECT  hit 53.4% (z +1.5, n 464) · cover 28% · all 52.4% · BSS +0.001 · PnL -1.51
-             HOLDOUT hit 50.9% (z +0.3, n 291) · cover 28% · all 52.0% · BSS +0.000 · PnL -0.63
-LR all−E     SELECT  hit 48.4% (z -0.5, n 213) · cover 26% · all 50.2% · BSS -0.019 · PnL -1.05
-             HOLDOUT hit 43.9% (z -2.0, n 280) · cover 27% · all 48.5% · BSS -0.016 · PnL -1.61
-LR only F    SELECT  hit 47.8% (z -0.5, n 113) · cover 13% · all 49.3% · BSS -0.005 · PnL -0.75
-             HOLDOUT hit 48.6% (z -0.4, n 181) · cover 17% · all 48.4% · BSS -0.001 · PnL -1.06
-LR all−F     SELECT  hit 51.0% (z +0.3, n 249) · cover 23% · all 51.7% · BSS -0.028 · PnL -0.83
-             HOLDOUT hit 49.8% (z -0.1, n 275) · cover 26% · all 49.3% · BSS -0.012 · PnL -0.90
-LR only G    SELECT  hit 50.6% (z +0.2, n 417) · cover 26% · all 51.1% · BSS -0.001 · PnL -0.48
-             HOLDOUT hit 52.3% (z +0.8, n 329) · cover 33% · all 50.1% · BSS -0.001 · PnL -0.57
-LR all−G     SELECT  hit 52.3% (z +0.7, n 222) · cover 26% · all 50.8% · BSS -0.013 · PnL -0.75
-             HOLDOUT hit 47.1% (z -1.0, n 297) · cover 28% · all 50.4% · BSS -0.011 · PnL -1.39
-baselines HOLDOUT: {'always up': '48.8%', 'same as last 12h': '50.1%', 'week trend': '50.1%'}
-→ chosen on SELECT: LR only D
+HAR (V)  SELECT  R² vs typical +0.296 · vs last +0.392 · band 80% → 78% · storm BSS +0.185 (21% storms) · top/bottom fifth ×2.48 · n 2130
+         HOLDOUT R² vs typical +0.212 · vs last +0.428 · band 80% → 77% · storm BSS +0.142 (20% storms) · top/bottom fifth ×2.39 · n 1359
+V+T      SELECT  R² vs typical +0.346 · vs last +0.435 · band 80% → 79% · storm BSS +0.205 (21% storms) · top/bottom fifth ×2.66 · n 2130
+         HOLDOUT R² vs typical +0.299 · vs last +0.491 · band 80% → 79% · storm BSS +0.180 (20% storms) · top/bottom fifth ×2.63 · n 1359
+V+T+E    SELECT  R² vs typical +0.346 · vs last +0.435 · band 80% → 79% · storm BSS +0.204 (21% storms) · top/bottom fifth ×2.69 · n 2130
+         HOLDOUT R² vs typical +0.306 · vs last +0.496 · band 80% → 79% · storm BSS +0.181 (20% storms) · top/bottom fifth ×2.63 · n 1359
+all      SELECT  R² vs typical +0.296 · vs last +0.429 · band 80% → 82% · storm BSS +0.199 (22% storms) · top/bottom fifth ×2.52 · n 1160
+         HOLDOUT R² vs typical +0.334 · vs last +0.516 · band 80% → 79% · storm BSS +0.193 (20% storms) · top/bottom fifth ×2.73 · n 1359
+HGB all  SELECT  R² vs typical +0.283 · vs last +0.419 · band 80% → 75% · storm BSS +0.165 (22% storms) · top/bottom fifth ×2.50 · n 1160
+         HOLDOUT R² vs typical +0.324 · vs last +0.509 · band 80% → 76% · storm BSS +0.194 (20% storms) · top/bottom fifth ×2.72 · n 1359
+→ chosen on SELECT: V+T+E
 
 === horizon 24h ===
-LR all       SELECT  hit 43.4% (z -1.4, n 113) · cover 26% · all 48.8% · BSS -0.062 · PnL -1.16
-             HOLDOUT hit 51.5% (z +0.3, n 132) · cover 25% · all 46.9% · BSS -0.024 · PnL +0.23
-HGB all      SELECT  hit 45.3% (z -0.9, n 86) · cover 20% · all 49.0% · BSS -0.129 · PnL -0.22
-             HOLDOUT hit 46.5% (z -0.8, n 127) · cover 24% · all 46.3% · BSS -0.071 · PnL -0.20
-LR only A    SELECT  hit 55.0% (z +1.2, n 151) · cover 18% · all 48.9% · BSS -0.012 · PnL +0.61
-             HOLDOUT hit 47.6% (z -0.5, n 105) · cover 21% · all 45.9% · BSS -0.007 · PnL -0.32
-LR all−A     SELECT  hit 43.6% (z -1.3, n 110) · cover 24% · all 49.9% · BSS -0.046 · PnL -1.20
-             HOLDOUT hit 45.5% (z -1.0, n 123) · cover 23% · all 48.1% · BSS -0.021 · PnL -0.55
-LR only B    SELECT  hit 44.6% (z -0.9, n 65) · cover 11% · all 45.8% · BSS -0.023 · PnL -0.49
-             HOLDOUT hit 54.3% (z +1.2, n 188) · cover 36% · all 53.7% · BSS +0.003 · PnL +0.18
-LR all−B     SELECT  hit 50.4% (z +0.1, n 121) · cover 28% · all 47.2% · BSS -0.031 · PnL -0.47
-             HOLDOUT hit 44.7% (z -1.2, n 123) · cover 23% · all 47.3% · BSS -0.022 · PnL -0.58
-LR only C    SELECT  hit 44.1% (z -1.0, n 68) · cover 8% · all 44.7% · BSS -0.006 · PnL -0.76
-             HOLDOUT hit 46.5% (z -1.0, n 215) · cover 42% · all 47.5% · BSS -0.002 · PnL -0.94
-LR all−C     SELECT  hit 45.0% (z -1.0, n 100) · cover 22% · all 49.7% · BSS -0.049 · PnL -0.75
-             HOLDOUT hit 52.6% (z +0.6, n 135) · cover 26% · all 48.8% · BSS -0.022 · PnL +0.31
-LR only D    SELECT  hit 51.6% (z +0.4, n 184) · cover 22% · all 50.7% · BSS -0.000 · PnL -0.64
-             HOLDOUT hit 47.0% (z -0.6, n 100) · cover 19% · all 49.0% · BSS -0.009 · PnL -0.55
-LR all−D     SELECT  hit 44.4% (z -1.1, n 90) · cover 20% · all 44.2% · BSS -0.063 · PnL -0.87
-             HOLDOUT hit 52.1% (z +0.5, n 146) · cover 29% · all 48.6% · BSS -0.012 · PnL -0.01
-LR only E    SELECT  hit 52.7% (z +0.7, n 188) · cover 22% · all 50.2% · BSS -0.002 · PnL -0.56
-             HOLDOUT hit 48.7% (z -0.3, n 119) · cover 22% · all 49.6% · BSS -0.005 · PnL -0.18
-LR all−E     SELECT  hit 44.3% (z -1.1, n 97) · cover 22% · all 46.7% · BSS -0.062 · PnL -1.02
-             HOLDOUT hit 46.9% (z -0.7, n 128) · cover 25% · all 46.1% · BSS -0.025 · PnL -0.20
-LR only F    SELECT  hit 52.3% (z +0.3, n 44) · cover 10% · all 48.1% · BSS -0.008 · PnL -0.15
-             HOLDOUT hit 45.0% (z -0.9, n 80) · cover 15% · all 50.6% · BSS -0.001 · PnL -0.81
-LR all−F     SELECT  hit 41.7% (z -1.7, n 108) · cover 19% · all 51.0% · BSS -0.069 · PnL -0.90
-             HOLDOUT hit 47.5% (z -0.5, n 122) · cover 23% · all 49.4% · BSS -0.021 · PnL -0.31
-LR only G    SELECT  hit 49.1% (z -0.3, n 265) · cover 32% · all 49.9% · BSS -0.005 · PnL -0.28
-             HOLDOUT hit 53.6% (z +0.9, n 138) · cover 27% · all 51.0% · BSS -0.001 · PnL +0.01
-LR all−G     SELECT  hit 40.9% (z -1.7, n 88) · cover 20% · all 48.3% · BSS -0.056 · PnL -1.01
-             HOLDOUT hit 49.0% (z -0.3, n 143) · cover 27% · all 49.0% · BSS -0.021 · PnL -0.45
-baselines HOLDOUT: {'always up': '47.9%', 'same as last 24h': '51.0%', 'week trend': '50.6%'}
-→ chosen on SELECT: LR only D
+HAR (V)  SELECT  R² vs typical +0.293 · vs last +0.343 · band 80% → 80% · storm BSS +0.180 (20% storms) · top/bottom fifth ×2.27 · n 1065
+         HOLDOUT R² vs typical +0.227 · vs last +0.398 · band 80% → 82% · storm BSS +0.149 (19% storms) · top/bottom fifth ×2.26 · n 679
+V+T      SELECT  R² vs typical +0.314 · vs last +0.363 · band 80% → 80% · storm BSS +0.189 (20% storms) · top/bottom fifth ×2.41 · n 1065
+         HOLDOUT R² vs typical +0.257 · vs last +0.421 · band 80% → 82% · storm BSS +0.156 (19% storms) · top/bottom fifth ×2.35 · n 679
+V+T+E    SELECT  R² vs typical +0.315 · vs last +0.364 · band 80% → 80% · storm BSS +0.188 (20% storms) · top/bottom fifth ×2.39 · n 1065
+         HOLDOUT R² vs typical +0.262 · vs last +0.425 · band 80% → 82% · storm BSS +0.152 (19% storms) · top/bottom fifth ×2.34 · n 679
+all      SELECT  R² vs typical +0.283 · vs last +0.404 · band 80% → 82% · storm BSS +0.172 (22% storms) · top/bottom fifth ×2.32 · n 580
+         HOLDOUT R² vs typical +0.286 · vs last +0.444 · band 80% → 82% · storm BSS +0.156 (19% storms) · top/bottom fifth ×2.42 · n 679
+HGB all  SELECT  R² vs typical +0.254 · vs last +0.380 · band 80% → 72% · storm BSS +0.106 (22% storms) · top/bottom fifth ×2.15 · n 580
+         HOLDOUT R² vs typical +0.286 · vs last +0.444 · band 80% → 77% · storm BSS +0.162 (19% storms) · top/bottom fifth ×2.51 · n 679
+→ chosen on SELECT: V+T+E
 
-model.json written · main horizon 1h (chosen on SELECT Brier skill)
+model.json written · main horizon 4h

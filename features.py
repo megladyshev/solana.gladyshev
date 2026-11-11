@@ -1,27 +1,30 @@
-"""Schemes A–G → feature columns. Every column at hour t uses only what was public at t.
+"""Volatility features and target. Every column at hour t uses only what was public at t.
 
-Index = candle close time (UTC). Returns are scaled by recent volatility so the numbers mean the same
-thing in 2021 and in 2026. Archived data (derivatives, stablecoins, sentiment) is read LAG hours late,
-the same in history and live.
+Target: the size of the coming move, log((max high − min low) over the next H hours / close now).
+The range is what a trader actually lives through: it decides whether a stop is hit.
+Index = candle close time (UTC). Archived data (derivatives, stablecoins, sentiment) is read LAG
+hours late, the same in history and live.
 """
 import numpy as np
 import pandas as pd
 
 LAG = pd.Timedelta(hours=30)   # daily archives appear within a day; 30 h is safely after that
 HORIZONS = [1, 4, 12, 24]
-DEAD = 0.25                    # |move| under 0.25 σ of the horizon is "flat": not scored
+CLIM = 720                     # "typical" range = mean of the last 30 days
+STORM_Q, STORM_WIN = 0.8, 2160 # a storm = a range above the 80th percentile of the last 90 days
 
-# feature → (scheme, short name shown in the app)
+# feature → (scheme, name shown in the app)
 NAMES = {
-    "r1": ("A", "Последний час"), "r4": ("A", "Последние 4 ч"), "r24": ("A", "Тренд за сутки"), "r72": ("A", "Тренд за 3 дня"),
-    "r168": ("A", "Тренд за неделю"), "r336": ("A", "Тренд за 2 недели"), "r672": ("A", "Тренд за 4 недели"), "ma20d": ("A", "Отрыв от 20-дневной средней"),
-    "rv_ratio": ("D", "Волатильность: сжатие/расширение"), "rv_z": ("D", "Уровень волатильности"), "range7": ("D", "Место в 7-дневном диапазоне"),
-    "btc4": ("E", "BTC за 4 ч"), "btc24": ("E", "BTC за сутки"), "btc168": ("E", "BTC за неделю"), "solbtc168": ("E", "SOL/BTC за неделю"), "eth24": ("E", "ETH за сутки"),
-    "taker24": ("B", "Спот: покупатели vs продавцы"), "oi24": ("B", "Открытый интерес за сутки"), "oi168": ("B", "Открытый интерес за неделю"),
-    "ls_top": ("B", "Топ-трейдеры long/short"), "ls_acc": ("B", "Толпа long/short"), "taker_ls": ("B", "Фьючерсы: агрессивные покупки"),
-    "prem8": ("C", "Премия/funding за 8 ч"), "prem72": ("C", "Премия/funding за 3 дня"),
-    "stable7": ("F", "Стейблкоины на Solana за неделю"), "stable30": ("F", "Стейблкоины на Solana за месяц"),
-    "fng": ("G", "Индекс страха и жадности"), "fng7": ("G", "Изменение страха/жадности"),
+    "hl1": ("V", "Размах последнего часа"), "rv4": ("V", "Волатильность за 4 ч"), "rv24": ("V", "Волатильность за сутки"),
+    "rv168": ("V", "Волатильность за неделю"), "rv720": ("V", "Волатильность за месяц"), "rng24": ("V", "Диапазон за сутки"),
+    "vol24": ("V", "Объём торгов к норме"),
+    "hs1": ("T", "Время суток"), "hc1": ("T", "Время суток"), "hs2": ("T", "Время суток"), "hc2": ("T", "Время суток"), "wkend": ("T", "Выходные"),
+    "r24": ("A", "Движение за сутки"), "r168": ("A", "Движение за неделю"), "ar24": ("A", "Сила движения за сутки"), "dd7": ("A", "Просадка от недельного максимума"),
+    "brv24": ("E", "Волатильность BTC"), "brv4": ("E", "Волатильность BTC за 4 ч"), "rel": ("E", "SOL нервнее BTC"),
+    "oi24": ("B", "Открытый интерес за сутки"), "aoi24": ("B", "Резкость изменения OI"), "ls_acc": ("B", "Толпа long/short"), "taker_ls": ("B", "Фьючерсы: агрессивные покупки"),
+    "prem8": ("C", "Премия/funding"), "aprem8": ("C", "Перекос премии/funding"),
+    "stable7": ("F", "Стейблкоины на Solana"),
+    "fng": ("G", "Страх и жадность"), "afng": ("G", "Экстремум страха/жадности"),
 }
 SCHEMES = sorted({s for s, _ in NAMES.values()})
 
@@ -43,56 +46,70 @@ def _lagged(df, idx):
     return out
 
 
+def _lrv(r, w):
+    return np.log(np.sqrt((r ** 2).rolling(w, min_periods=max(2, w // 2)).mean()) + 1e-6)
+
+
 def build(d):
     sol = d["sol"]
-    c = sol["close"]
+    c, hi, lo = sol["close"], sol["high"], sol["low"]
     idx = c.index
     r = _lr(c, 1)
-    vol = r.rolling(168, min_periods=48).std()           # σ of 1 h returns over a week
+    s1 = r.rolling(168, min_periods=48).std()
     f = pd.DataFrame(index=idx)
-    for k in (1, 4, 24, 72, 168, 336, 672):
-        f[f"r{k}"] = _lr(c, k) / (vol * np.sqrt(k))
-    f["ma20d"] = np.log(c / c.rolling(480).mean()) / (vol * np.sqrt(480))
-    f["rv_ratio"] = np.log(r.rolling(24).std() / vol)
-    f["rv_z"] = _z(np.log(vol), 2160)
-    hi, lo = sol["high"].rolling(168).max(), sol["low"].rolling(168).min()
-    f["range7"] = (c - lo) / (hi - lo) - 0.5
-    f["taker24"] = sol["taker_q"].rolling(24).sum() / sol["qvol"].rolling(24).sum() - 0.5
+    f["hl1"] = np.log((hi - lo) / c + 1e-6)
+    for w in (4, 24, 168, 720):
+        f[f"rv{w}"] = _lrv(r, w)
+    f["rng24"] = np.log((hi.rolling(24).max() - lo.rolling(24).min()) / c)
+    qv = np.log(sol["qvol"].rolling(24).sum())
+    f["vol24"] = qv - qv.rolling(720, min_periods=180).mean()
+    hr = idx.hour.values
+    for k in (1, 2):
+        f[f"hs{k}"], f[f"hc{k}"] = np.sin(2 * np.pi * k * hr / 24), np.cos(2 * np.pi * k * hr / 24)
+    f["wkend"] = (idx.dayofweek >= 5).astype(float)
+    f["r24"] = _lr(c, 24) / (s1 * np.sqrt(24))
+    f["r168"] = _lr(c, 168) / (s1 * np.sqrt(168))
+    f["ar24"] = f["r24"].abs()
+    f["dd7"] = np.log(c / hi.rolling(168).max())
 
-    for name, k in (("btc", 4), ("btc", 24), ("btc", 168), ("eth", 24)):
-        x = d[name]["close"].reindex(idx)
-        xv = _lr(x, 1).rolling(168, min_periods=48).std()
-        f[f"{name}{k}"] = _lr(x, k) / (xv * np.sqrt(k))
-    f["solbtc168"] = _lr(c / d["btc"]["close"].reindex(idx), 168) / (vol * np.sqrt(168))
+    b = d["btc"].reindex(idx)
+    br = _lr(b["close"], 1)
+    f["brv24"], f["brv4"] = _lrv(br, 24), _lrv(br, 4)
+    f["rel"] = f["rv24"] - f["brv24"]
 
     if d.get("metrics") is not None:
         m = _lagged(d["metrics"], idx)
-        f["oi24"], f["oi168"] = _z(np.log(m["oi_usd"]).diff(24)), _z(np.log(m["oi_usd"]).diff(168))
-        f["ls_top"], f["ls_acc"] = _z(np.log(m["ls_top"])), _z(np.log(m["ls_acc"]))
+        f["oi24"] = _z(np.log(m["oi_usd"]).diff(24))
+        f["aoi24"] = f["oi24"].abs()
+        f["ls_acc"] = _z(np.log(m["ls_acc"]))
         f["taker_ls"] = _z(np.log(m["taker_ls"]).rolling(24).mean())
     if d.get("premium") is not None:
         p = _lagged(d["premium"], idx)["premium"]
-        f["prem8"], f["prem72"] = _z(p.rolling(8).mean()), _z(p.rolling(72).mean())
+        f["prem8"] = _z(p.rolling(8).mean())
+        f["aprem8"] = f["prem8"].abs()
     if d.get("stable") is not None:
-        s = np.log(_lagged(d["stable"], idx)["stable"])
-        f["stable7"], f["stable30"] = _z(s.diff(168)), _z(s.diff(720))
+        f["stable7"] = _z(np.log(_lagged(d["stable"], idx)["stable"]).diff(168))
     if d.get("fng") is not None:
         g = _lagged(d["fng"], idx)["fng"]
-        f["fng"], f["fng7"] = (g - 50) / 25, g.diff(168) / 25
+        f["fng"], f["afng"] = (g - 50) / 25, (g - 50).abs() / 25
 
     f = f.replace([np.inf, -np.inf], np.nan)
-    return f, c, vol
+    return f, sol
 
 
-def targets(c, vol):
-    """y[h] = 1 up / 0 down / NaN flat or unknown, and the log move itself."""
-    y, move = {}, {}
+def targets(sol):
+    """For each horizon: y = log of the coming range, plus what was known about ranges at t
+    (climatology = typical range, storm threshold), all without looking past t."""
+    c, hi, lo = sol["close"], sol["high"], sol["low"]
+    out = {}
     for h in HORIZONS:
-        m = np.log(c.shift(-h) / c)
-        dz = DEAD * vol * np.sqrt(h)
-        y[h] = pd.Series(np.where(m > dz, 1.0, np.where(m < -dz, 0.0, np.nan)), index=c.index).where(m.notna())
-        move[h] = m
-    return y, move
+        fh = pd.concat([hi.shift(-k) for k in range(1, h + 1)], axis=1).max(axis=1, skipna=False)
+        fl = pd.concat([lo.shift(-k) for k in range(1, h + 1)], axis=1).min(axis=1, skipna=False)
+        y = np.log((fh - fl) / c).replace([np.inf, -np.inf], np.nan)   # a frozen market (zero range) is not a forecastable window
+        done = y.shift(h)                                   # ranges whose window has already closed at t
+        out[h] = pd.DataFrame({"y": y, "clim": done.rolling(CLIM, min_periods=200).mean(),
+                               "last": done, "thr": done.rolling(STORM_WIN, min_periods=500).quantile(STORM_Q)})
+    return out
 
 
 def cols(schemes):

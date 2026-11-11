@@ -1,21 +1,26 @@
-"""Walk-forward backtest: does any scheme beat the baselines out of sample?
+"""Walk-forward backtest of the volatility forecast: does it beat the naive guesses?
 
-Each month is predicted by a model trained only on data whose outcome was already known before the
-month began (embargo = horizon). Calls are scored on a non-overlapping grid (one call per horizon
-window), so n is honest. Model and scheme choice is made on 2023–2024 only (SELECT); the numbers that
-count are the ones on 2025→now (HOLDOUT), which the choice never saw.
+Each month is forecast by a model trained only on windows whose outcome was known before the month
+began (embargo = horizon). One forecast per horizon window, so n is honest. Model choice is made on
+2023–2024 (SELECT); the numbers that count are on 2025→now (HOLDOUT), which the choice never saw.
 
-    python backtest.py            full report, writes model.json
-    python backtest.py --quick    LR only, no ablation
+What is scored, on the log of the coming range:
+  r2_clim   1 − SSE/SSE of "typical range of the last 30 days"   (> 0 = better than typical)
+  r2_last   same against "same as the last window"
+  cover     how often the actual range fell inside the 10–90% band  (should be ≈ 80%)
+  storm BSS skill of P(range above the 90-day 80th percentile) against the constant 20%
+  lift      how much bigger the actual range is in the top fifth of forecasts than in the bottom fifth
+
+    python backtest.py        full report, writes model.json
 """
 import json
-import sys
 import warnings
 
 import numpy as np
 import pandas as pd
-from sklearn.ensemble import HistGradientBoostingClassifier
-from sklearn.linear_model import LogisticRegression
+from scipy.stats import norm
+from sklearn.ensemble import HistGradientBoostingRegressor
+from sklearn.linear_model import Ridge
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 
@@ -23,111 +28,90 @@ import features as FT
 
 warnings.filterwarnings("ignore")
 SPLIT = pd.Timestamp("2025-01-01", tz="UTC")
-COVER = 0.30          # aim: speak on ~30% of windows, stay silent on the rest
-FEE = 0.002           # round trip, only for the PnL column
+CANDS = {"HAR (V)": ("ridge", ["V"]), "V+T": ("ridge", ["V", "T"]), "V+T+E": ("ridge", ["V", "T", "E"]),
+         "all": ("ridge", FT.SCHEMES), "HGB all": ("hgb", FT.SCHEMES)}
 
 
 def make(kind):
     if kind == "hgb":
-        return HistGradientBoostingClassifier(max_depth=3, learning_rate=0.05, max_iter=150, l2_regularization=1.0, min_samples_leaf=200)
-    return make_pipeline(StandardScaler(), LogisticRegression(C=0.05, max_iter=1000))
+        return HistGradientBoostingRegressor(max_depth=3, learning_rate=0.05, max_iter=200, l2_regularization=1.0, min_samples_leaf=200)
+    return make_pipeline(StandardScaler(), Ridge(alpha=10.0))
 
 
 def on_grid(idx, h):
     return (idx.hour % h == 0) if h < 24 else (idx.hour == 0)
 
 
-def walk_forward(F, y, move, cols, h, kind="lr", start=None):
-    X = F[[k for k in cols if k in F]]
-    ok = X.notna().all(axis=1)
-    first = X[ok].index[0] + pd.Timedelta(days=365)          # at least a year to learn from
-    months = pd.date_range(max(first, start or first).normalize().replace(day=1) + pd.offsets.MonthBegin(1), F.index[-1], freq="MS", tz="UTC")
+def fit(F, t, cols, kind, train_mask):
+    """Fit on rows of train_mask; return model and residual stats (σ and 10/90% quantiles)."""
+    X, y = F.loc[train_mask, cols].values, t.loc[train_mask, "y"].values
+    m = make(kind).fit(X, y)
+    res = y - m.predict(X)
+    return m, float(res.std()), float(np.quantile(res, 0.1)), float(np.quantile(res, 0.9))
+
+
+def walk_forward(F, t, cols, h, kind="ridge"):
+    cols = [k for k in cols if k in F]
+    ok = F[cols].notna().all(axis=1) & t[["clim", "last", "thr"]].notna().all(axis=1)
+    first = F[ok].index[0] + pd.Timedelta(days=365)
+    months = pd.date_range(first.normalize().replace(day=1) + pd.offsets.MonthBegin(1), F.index[-1], freq="MS", tz="UTC")
     grid, out = on_grid(F.index, h), []
     for a, b in zip(months, list(months[1:]) + [F.index[-1] + pd.Timedelta(hours=1)]):
-        tr = ok & y.notna() & (F.index < a - pd.Timedelta(hours=h))
-        te = ok & grid & (F.index >= a) & (F.index < b)
+        tr = ok & t["y"].notna() & (F.index < a - pd.Timedelta(hours=h))
+        te = ok & grid & t["y"].notna() & (F.index >= a) & (F.index < b)
         if tr.sum() < 2000 or te.sum() == 0:
             continue
-        m = make(kind).fit(X[tr].values, y[tr].values)
-        out.append(pd.DataFrame({"p": m.predict_proba(X[te].values)[:, 1], "y": y[te], "move": move[h][te]}, index=F.index[te]))
-    return pd.concat(out) if out else pd.DataFrame(columns=["p", "y", "move"])
+        m, s, q10, q90 = fit(F, t, cols, kind, tr)
+        p = m.predict(F.loc[te, cols].values)
+        o = t.loc[te, ["y", "clim", "last", "thr"]].copy()
+        o["pred"], o["lo"], o["hi"] = p, p + q10, p + q90
+        o["p_storm"] = 1 - norm.cdf((o["thr"] - p) / s)
+        out.append(o)
+    return pd.concat(out) if out else pd.DataFrame()
 
 
-def margins(p, cover=COVER, warm=60):
-    """Abstain threshold for each call from PAST calls only: the |p−0.5| that the top `cover` share reached."""
-    a = (p - 0.5).abs()
-    return a.expanding(warm).quantile(1 - cover).shift(1).fillna(np.inf)
-
-
-def score(o, h):
-    """Metrics on scored windows (flat outcomes are left out of hit rates, kept in coverage)."""
+def score(o):
     if not len(o):
         return {}
-    o = o.copy()
-    o["conf"] = (o["p"] - 0.5).abs() >= margins(o["p"])
-    s = o[o["y"].notna()]
-    c = s[s["conf"]]
-    hit = lambda d: float(((d["p"] > 0.5) == (d["y"] == 1)).mean()) if len(d) else None
-    n = len(c)
-    z = (hit(c) - 0.5) * np.sqrt(n) / 0.5 if n else None
-    sign = np.where(o["p"] > 0.5, 1, -1)
-    pnl = (sign * o["move"] - FEE)[o["conf"] & o["move"].notna()]
-    return {"n": int(n), "hit": hit(c), "z": z, "coverage": float(o["conf"].mean()), "hit_all": hit(s),
-            "brier_skill": float(1 - ((s["p"] - s["y"]) ** 2).mean() / 0.25), "up_rate": float(s["y"].mean()),
-            "pnl": float(pnl.sum()), "pnl_per_call": float(pnl.mean()) if len(pnl) else None}
-
-
-def baselines(F, y, move, h, idx):
-    g = idx[on_grid(idx, h)]
-    yy = y.reindex(g)
-    s = yy.notna()
-    mom_h = (F[f"r{h}"] if f"r{h}" in F else F["r24"]).reindex(g) > 0
-    mom_w = F["r168"].reindex(g) > 0
-    f = lambda pred: float((pred[s] == (yy[s] == 1)).mean())
-    return {"always up": f(pd.Series(True, index=g)), f"same as last {h}h": f(mom_h), "week trend": f(mom_w)}
+    sse = lambda p: float(((o["y"] - p) ** 2).sum())
+    storm = (o["y"] > o["thr"]).astype(float)
+    q = pd.qcut(o["pred"], 5, labels=False, duplicates="drop")
+    return {"n": int(len(o)), "r2_clim": 1 - sse(o["pred"]) / sse(o["clim"]), "r2_last": 1 - sse(o["pred"]) / sse(o["last"]),
+            "cover": float(((o["y"] >= o["lo"]) & (o["y"] <= o["hi"])).mean()),
+            "storm_rate": float(storm.mean()), "storm_bss": float(1 - ((o["p_storm"] - storm) ** 2).mean() / ((0.2 - storm) ** 2).mean()),
+            "lift": float(np.exp(o["y"][q == q.max()].mean() - o["y"][q == 0].mean())),
+            "mae_pct": float((np.exp(o["y"]) - np.exp(o["pred"])).abs().mean() * 100)}
 
 
 def fmt(r):
     if not r:
         return "—"
-    v = lambda x, f: "—" if x is None else f.format(x)
-    return (f"hit {v(r['hit'], '{:.1%}')} (z {v(r['z'], '{:+.1f}')}, n {r['n']}) · cover {r['coverage']:.0%} · "
-            f"all {v(r['hit_all'], '{:.1%}')} · BSS {r['brier_skill']:+.3f} · PnL {r['pnl']:+.2f}")
+    return (f"R² vs typical {r['r2_clim']:+.3f} · vs last {r['r2_last']:+.3f} · band 80% → {r['cover']:.0%} · "
+            f"storm BSS {r['storm_bss']:+.3f} ({r['storm_rate']:.0%} storms) · top/bottom fifth ×{r['lift']:.2f} · n {r['n']}")
 
 
-def run(quick=False):
+def run():
     import data
     d = data.load()
-    F, c, vol = FT.build(d)
-    y, move = FT.targets(c, vol)
-    allc = FT.cols(FT.SCHEMES)
+    F, sol = FT.build(d)
+    T = FT.targets(sol)
     best = {}
     for h in FT.HORIZONS:
-        cands = {"LR all": ("lr", FT.SCHEMES)}
-        if not quick:
-            cands["HGB all"] = ("hgb", FT.SCHEMES)
-            for s in FT.SCHEMES:
-                cands[f"LR only {s}"] = ("lr", [s])
-                cands[f"LR all−{s}"] = ("lr", [x for x in FT.SCHEMES if x != s])
         print(f"\n=== horizon {h}h ===")
         res = {}
-        for name, (kind, sch) in cands.items():
-            o = walk_forward(F, y[h], move, FT.cols(sch), h, kind)
-            sel, hold = o[o.index < SPLIT], o[o.index >= SPLIT]
-            res[name] = (kind, sch, score(sel, h), score(hold, h), float((o["p"] - 0.5).abs().quantile(1 - COVER)) if len(o) else 0.05)
-            print(f"{name:12} SELECT  {fmt(res[name][2])}")
-            print(f"{'':12} HOLDOUT {fmt(res[name][3])}")
-        idx = F.index[F.index >= SPLIT]
-        print("baselines HOLDOUT:", {k: f"{v:.1%}" for k, v in baselines(F, y[h], move, h, idx).items()})
-        name = max(res, key=lambda k: res[k][2].get("brier_skill", -9))  # chosen on SELECT only
-        kind, sch, sel, hold, margin = res[name]
-        enabled = bool(sel.get("z") and sel["z"] >= 2 and sel["brier_skill"] > 0)  # judged on SELECT only
-        best[f"{h}h"] = {"h": h, "model": kind, "schemes": sch, "chosen": name, "margin": margin, "enabled": enabled, "select": sel, "backtest": hold}
+        for name, (kind, sch) in CANDS.items():
+            o = walk_forward(F, T[h], FT.cols(sch), h, kind)
+            res[name] = (kind, sch, score(o[o.index < SPLIT]), score(o[o.index >= SPLIT]))
+            print(f"{name:8} SELECT  {fmt(res[name][2])}")
+            print(f"{'':8} HOLDOUT {fmt(res[name][3])}")
+        name = max(res, key=lambda k: res[k][2].get("r2_clim", -9))          # chosen on SELECT only
+        kind, sch, sel, hold = res[name]
+        best[f"{h}h"] = {"h": h, "model": kind, "schemes": sch, "chosen": name, "enabled": sel.get("r2_clim", 0) > 0.02, "select": sel, "backtest": hold}
         print(f"→ chosen on SELECT: {name}")
-    main = max(best, key=lambda k: best[k]["select"].get("brier_skill", -9))
-    json.dump({"main": main, "horizons": best, "split": str(SPLIT.date())}, open("model.json", "w"), indent=1, default=float)
-    print(f"\nmodel.json written · main horizon {main} (chosen on SELECT Brier skill)")
+    main = "4h" if best["4h"]["enabled"] else max(best, key=lambda k: best[k]["select"].get("r2_clim", -9))
+    json.dump({"main": main, "horizons": best, "split": str(SPLIT.date()), "target": "range"}, open("model.json", "w"), indent=1, default=float)
+    print(f"\nmodel.json written · main horizon {main}")
 
 
 if __name__ == "__main__":
-    run(quick="--quick" in sys.argv)
+    run()

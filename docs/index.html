@@ -3,124 +3,166 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>SOL Прогноз</title>
+<meta name="description" content="Прогноз размаха движения SOL с честным трек-рекордом">
+<title>SOL · размах движения</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2312161b'/%3E%3Cpath d='M8 21l6-6 4 4 6-8' stroke='%233ecf8e' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
 :root{
-  --bg:#f1f2f5; --card:#fff; --text:#14161a; --hint:#868c96; --accent:#2481cc;
-  --line:#e6e8ec; --up:#16a34a; --down:#e5484d; --warn:#b7791f;
-  --up-soft:rgba(22,163,74,.16); --down-soft:rgba(229,72,77,.16); --warn-soft:rgba(183,121,31,.12);
-  --track:#eceef1;
+  --bg:#f3f4f6; --surface:#ffffff; --raise:#eceef1; --text:#14171c; --soft:#4a515c; --hint:#8a919c;
+  --line:rgba(20,23,28,.08); --accent:#14171c;
+  --up:#14a46c; --down:#d9474d; --warn:#b5761a;
+  --up-a:rgba(20,164,108,.12); --down-a:rgba(217,71,77,.12); --warn-a:rgba(181,118,26,.12);
+  --shadow:0 1px 0 rgba(20,23,28,.04),0 8px 24px -12px rgba(20,23,28,.12);
   color-scheme:light;
 }
-@media (prefers-color-scheme:dark){
-  :root:not([data-scheme="light"]){
-    --bg:#0e1116; --card:#181c23; --text:#eceef2; --hint:#8a919c; --accent:#5aa7e6;
-    --line:#262b34; --up:#2fbf71; --down:#f0646a; --warn:#e0a33a;
-    --up-soft:rgba(47,191,113,.2); --down-soft:rgba(240,100,106,.2); --warn-soft:rgba(224,163,58,.14);
-    --track:#252a33; color-scheme:dark;
-  }
-}
+@media (prefers-color-scheme:dark){:root:not([data-scheme="light"]){
+  --bg:#0b0d10; --surface:#12161b; --raise:#1a1f26; --text:#e8eaed; --soft:#b3b9c2; --hint:#7d8590;
+  --line:rgba(232,234,237,.07); --accent:#e8eaed;
+  --up:#3ecf8e; --down:#f2676b; --warn:#e3a53f;
+  --up-a:rgba(62,207,142,.13); --down-a:rgba(242,103,107,.13); --warn-a:rgba(227,165,63,.12);
+  --shadow:0 1px 0 rgba(255,255,255,.03) inset,0 10px 30px -14px rgba(0,0,0,.6); color-scheme:dark;
+}}
 :root[data-scheme="dark"]{
-  --bg:#0e1116; --card:#181c23; --text:#eceef2; --hint:#8a919c; --accent:#5aa7e6;
-  --line:#262b34; --up:#2fbf71; --down:#f0646a; --warn:#e0a33a;
-  --up-soft:rgba(47,191,113,.2); --down-soft:rgba(240,100,106,.2); --warn-soft:rgba(224,163,58,.14);
-  --track:#252a33; color-scheme:dark;
+  --bg:#0b0d10; --surface:#12161b; --raise:#1a1f26; --text:#e8eaed; --soft:#b3b9c2; --hint:#7d8590;
+  --line:rgba(232,234,237,.07); --accent:#e8eaed;
+  --up:#3ecf8e; --down:#f2676b; --warn:#e3a53f;
+  --up-a:rgba(62,207,142,.13); --down-a:rgba(242,103,107,.13); --warn-a:rgba(227,165,63,.12);
+  --shadow:0 1px 0 rgba(255,255,255,.03) inset,0 10px 30px -14px rgba(0,0,0,.6); color-scheme:dark;
 }
 *{box-sizing:border-box}
 html,body{margin:0}
-body{background:var(--bg);color:var(--text);
-  font:15px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
-  -webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
-main{max-width:480px;margin:0 auto;padding:14px 16px calc(24px + env(safe-area-inset-bottom))}
-.num{font-variant-numeric:tabular-nums}
-.card{background:var(--card);border-radius:18px;padding:16px;margin-top:12px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
-h2{font-size:13px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--hint);margin:0 0 12px}
-.hint{color:var(--hint);font-size:13px}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font:15px/1.45 Onest,system-ui,-apple-system,"Segoe UI",sans-serif;
+  -webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;min-height:100dvh}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.035;z-index:0;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+main{position:relative;z-index:1;max-width:460px;margin:0 auto;padding:18px 16px calc(28px + env(safe-area-inset-bottom))}
+.mono,.num{font-family:"JetBrains Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.hint{color:var(--hint)} .soft{color:var(--soft)}
 .up{color:var(--up)} .down{color:var(--down)}
+p{margin:0;text-wrap:pretty}
+
+/* entry */
+.in{animation:in .5s cubic-bezier(.2,.8,.2,1) backwards;animation-delay:calc(var(--i,0) * 60ms)}
+@keyframes in{from{opacity:0;transform:translateY(8px)}}
+@media (prefers-reduced-motion:reduce){.in{animation:none}}
 
 /* header */
-.top{display:flex;justify-content:space-between;align-items:flex-end;gap:12px}
-.coin{font-size:13px;font-weight:600;color:var(--hint);letter-spacing:.03em}
-.price{font-size:30px;font-weight:700;letter-spacing:-.02em;line-height:1.1}
-.chg{font-size:14px;font-weight:600;padding:3px 9px;border-radius:999px;white-space:nowrap}
-.chg.up{background:var(--up-soft)} .chg.down{background:var(--down-soft)}
-.spark{display:block;width:100%;height:56px;margin-top:10px}
-.sparkmeta{display:flex;justify-content:space-between;margin-top:6px}
+.head{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.ticker{font-size:12px;font-weight:600;letter-spacing:.08em;color:var(--hint)}
+.price{font-size:34px;font-weight:600;line-height:1;margin-top:6px;letter-spacing:-.03em}
+.chg{font-size:13px;font-weight:500;padding:4px 8px;border-radius:7px}
+.chg.up{background:var(--up-a)} .chg.down{background:var(--down-a)}
+.spark{display:block;width:calc(100% + 32px);margin:14px -16px 0;height:64px}
+.sparkmeta{display:flex;justify-content:space-between;font-size:11px;margin-top:4px}
 
-/* tabs */
-.tabs{display:flex;background:var(--card);border-radius:14px;padding:4px;margin-top:12px;gap:4px}
-.tabs button{flex:1;border:0;background:none;color:var(--hint);font:inherit;font-weight:600;font-size:14px;
-  padding:8px 0;border-radius:10px;cursor:pointer;transition:background .15s,color .15s}
-.tabs button[aria-selected="true"]{background:var(--accent);color:#fff}
-.tabs button .dot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-left:5px;vertical-align:2px;background:currentColor;opacity:.85}
+/* horizon switch */
+.hz{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;margin:22px 0 0;border-bottom:1px solid var(--line)}
+.hz button{position:relative;border:0;background:none;font:inherit;font-size:14px;font-weight:600;color:var(--hint);
+  padding:10px 0 12px;cursor:pointer;transition:color .2s}
+.hz button:hover{color:var(--soft)}
+.hz button:active{transform:translateY(1px)}
+.hz button[aria-selected="true"]{color:var(--text)}
+.hz button[aria-selected="true"]::after{content:"";position:absolute;left:22%;right:22%;bottom:-1px;height:2px;border-radius:2px;background:var(--accent)}
+.hz button.off{opacity:.45}
+.hz i{display:inline-block;width:6px;height:6px;border-radius:2px;margin-left:6px;vertical-align:1px}
+.hz button:focus-visible,.btn:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
 
-/* banner */
-.banner{background:var(--warn-soft);color:var(--text);border-radius:14px;padding:12px 14px;margin-top:12px;
-  display:flex;gap:10px;font-size:14px}
-.banner b{color:var(--warn)}
+/* verdict */
+.verdict{margin-top:22px}
+.eyebrow{font-size:13px;color:var(--hint)}
+.word{font-size:56px;font-weight:800;line-height:.95;letter-spacing:-.045em;margin-top:6px;display:flex;align-items:center;gap:12px}
+.word svg{width:40px;height:40px;flex:none}
+.word.none{color:var(--soft);font-size:44px}
+.lede{margin-top:10px;color:var(--soft);max-width:36ch}
 
-/* main call */
-.call{text-align:center}
-.label{font-size:34px;font-weight:800;letter-spacing:.02em;line-height:1.1;margin-top:2px}
-.label.none{color:var(--hint);font-size:28px}
-.sub{margin-top:4px}
-.gauge{display:block;width:100%;max-width:260px;margin:6px auto 0}
-.gauge text{font-family:inherit;fill:var(--text)}
-.gauge .t{fill:var(--hint);font-size:11px}
-.meta{display:flex;justify-content:space-between;gap:8px;border-top:1px solid var(--line);margin-top:6px;padding-top:12px;text-align:left}
-.meta div:last-child{text-align:right}
-.meta b{display:block;font-size:15px}
-.liveline{margin-top:12px;padding:10px 12px;border-radius:12px;background:var(--bg);font-size:13px;text-align:left}
-.liveline a{color:var(--accent);text-decoration:none;white-space:nowrap}
+/* edge meter */
+.meter{margin-top:22px;padding:16px 16px 14px;border-radius:16px;background:var(--surface);box-shadow:var(--shadow)}
+.meter .row{display:flex;justify-content:space-between;align-items:baseline}
+.meter .pv{font-size:22px;font-weight:600}
+.track{position:relative;height:36px;margin-top:26px}
+.track .rail{position:absolute;left:0;right:0;top:16px;height:4px;border-radius:2px;
+  background:var(--raise)}
+.track .quiet{position:absolute;top:10px;height:16px;border-radius:4px;
+  background:repeating-linear-gradient(135deg,var(--line) 0 4px,transparent 4px 8px);border:1px dashed var(--line)}
+.track .mid{position:absolute;left:50%;top:8px;width:1px;height:20px;background:var(--hint);opacity:.5}
+.track .dot{position:absolute;top:9px;width:18px;height:18px;margin-left:-9px;border-radius:50%;background:var(--surface);
+  border:4px solid var(--soft);transition:left .6s cubic-bezier(.2,.8,.2,1)}
+.track .dot.up{border-color:var(--up)} .track .dot.down{border-color:var(--down)}
+.track .band{position:absolute;top:13px;height:10px;border-radius:5px;background:var(--soft);opacity:.35}
+.track .band.up{background:var(--up)} .track .band.down{background:var(--down)}
+.track .mark{position:absolute;top:4px;width:2px;height:28px;margin-left:-1px;background:var(--hint);opacity:.7}
+.track .mark span{position:absolute;top:-16px;left:50%;transform:translateX(-50%);font-size:10px;color:var(--hint);white-space:nowrap}
+.track .mark.storm{background:var(--down);opacity:.8} .track .mark.storm span{color:var(--down)}
+.track .zone{position:absolute;right:0;top:16px;height:4px;border-radius:2px;background:var(--down-a)}
+.track .dot.soft{border-color:var(--soft)}
+.strip .inside{background:var(--up)} .strip .above{background:var(--down)} .strip .below{background:var(--hint);opacity:.35}
+.scale{display:flex;justify-content:space-between;font-size:11px;color:var(--hint)}
+.facts{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;margin-top:14px;background:var(--line);border-radius:12px;overflow:hidden}
+.facts div{background:var(--surface);padding:10px 10px 9px}
+.facts small{display:block;font-size:11px;color:var(--hint)}
+.facts b{display:block;font-size:14px;font-weight:600;margin-top:2px}
 
-/* reasons */
-.reason{display:grid;grid-template-columns:minmax(0,1fr) 20px 64px 46px;align-items:center;gap:8px;padding:7px 0}
-.reason+.reason{border-top:1px solid var(--line)}
-.rname{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.scheme{font-size:11px;font-weight:700;color:var(--hint);border:1px solid var(--line);border-radius:6px;text-align:center;line-height:18px}
-.bar{position:relative;height:8px;background:var(--track);border-radius:4px}
-.bar::after{content:"";position:absolute;left:50%;top:-3px;bottom:-3px;width:1px;background:var(--hint);opacity:.5}
-.bar i{position:absolute;top:0;bottom:0;border-radius:4px}
-.push{text-align:right;font-size:13px;font-weight:600}
+/* sections */
+section{margin-top:28px}
+h2{font-size:17px;font-weight:700;letter-spacing:-.02em;margin:0 0 4px}
+.sub{font-size:13px;color:var(--hint);margin-bottom:12px}
 
-/* track record */
-.stats{width:100%;border-collapse:collapse;font-size:14px}
-.stats th{font-weight:500;color:var(--hint);font-size:12px;text-align:right;padding:0 0 6px}
-.stats th:first-child,.stats td:first-child{text-align:left}
-.stats td{text-align:right;padding:8px 0;border-top:1px solid var(--line)}
-.stats td b{font-size:16px}
-.stats .bt td{color:var(--hint)}
-.note{margin-top:10px}
-.summary{display:flex;gap:14px;margin:16px 0 4px;font-size:13px;font-weight:600}
-.feed{list-style:none;margin:0;padding:0}
-.feed li{display:grid;grid-template-columns:minmax(0,1fr) 64px 48px 72px;align-items:center;gap:6px;padding:9px 0;border-top:1px solid var(--line);font-size:14px}
-.feed .when{line-height:1.2}
-.feed .when small{display:block;color:var(--hint);font-size:12px}
-.pill{font-size:12px;font-weight:700;padding:2px 0;border-radius:6px;text-align:center}
-.pill.up{background:var(--up-soft)} .pill.down{background:var(--down-soft)} .pill.none{background:var(--track);color:var(--hint)}
-.res{text-align:right;font-weight:600;font-size:13px;white-space:nowrap}
-.res.flat,.res.pend{color:var(--hint)}
+/* trust */
+.trust{border-radius:16px;padding:14px 16px;background:var(--surface);box-shadow:var(--shadow)}
+.trust .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px 12px}
+.trust small{display:block;font-size:11px;color:var(--hint)}
+.trust b{font-size:20px;font-weight:600}
+.trust .verdictline{margin-top:14px;padding-top:12px;border-top:1px solid var(--line);font-size:13px;color:var(--soft)}
+.tag{display:inline-block;font-size:11px;font-weight:600;letter-spacing:.04em;padding:3px 7px;border-radius:5px;vertical-align:2px}
+.tag.ok{background:var(--up-a);color:var(--up)} .tag.no{background:var(--raise);color:var(--hint)} .tag.warn{background:var(--warn-a);color:var(--warn)}
 
-footer{text-align:center;margin:20px 8px 0}
+/* drivers */
+.drv{display:grid;grid-template-columns:minmax(0,1fr) 92px 52px;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
+.drv:first-of-type{border-top:0}
+.drv .n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.drv .n em{font-style:normal;font-size:11px;color:var(--hint);margin-right:6px}
+.drv .b{position:relative;height:6px}
+.drv .b::before{content:"";position:absolute;left:50%;top:-4px;bottom:-4px;width:1px;background:var(--line)}
+.drv .b i{position:absolute;top:0;bottom:0;border-radius:3px}
+.drv .v{text-align:right;font-size:12px}
 
-/* states */
-.state{text-align:center;padding:48px 20px}
-.state .big{font-size:40px;line-height:1}
-.state p{margin:12px 0 0}
-.btn{margin-top:16px;border:0;background:var(--accent);color:#fff;font:inherit;font-weight:600;padding:10px 22px;border-radius:12px;cursor:pointer}
-.sk{background:var(--card);border-radius:18px;margin-top:12px;animation:pulse 1.2s ease-in-out infinite}
-@keyframes pulse{50%{opacity:.55}}
+/* record */
+.strip{display:grid;grid-template-columns:repeat(15,1fr);gap:4px}
+.strip span{aspect-ratio:1;border-radius:3px;background:var(--raise)}
+.strip .hit{background:var(--up)} .strip .miss{background:var(--down)} .strip .flat{background:var(--hint);opacity:.35}
+.strip .pend{background:none;border:1px dashed var(--hint);opacity:.6}
+.counts{display:flex;gap:16px;margin-top:10px;font-size:12px}
+details{margin-top:14px;border-top:1px solid var(--line)}
+summary{list-style:none;cursor:pointer;padding:12px 0;font-size:14px;font-weight:600;display:flex;justify-content:space-between}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"+";color:var(--hint);font-weight:400}
+details[open] summary::after{content:"−"}
+.log{list-style:none;margin:0;padding:0}
+.log li{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:12px;align-items:center;padding:9px 0;border-top:1px solid var(--line);font-size:13px}
+.log small{display:block;color:var(--hint);font-size:11px}
+.empty{padding:18px 16px;border-radius:14px;background:var(--surface);color:var(--soft);font-size:14px;box-shadow:var(--shadow)}
+
+/* banner, footer, states */
+.banner{display:flex;gap:10px;margin-top:18px;padding:12px 14px;border-radius:12px;background:var(--warn-a);font-size:14px}
+.banner svg{flex:none;color:var(--warn);margin-top:2px}
+footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--line);font-size:12px;color:var(--hint)}
+footer p+p{margin-top:6px}
+.btn{margin-top:18px;border:0;background:var(--text);color:var(--bg);font:inherit;font-weight:600;padding:11px 20px;border-radius:10px;cursor:pointer;transition:transform .15s,opacity .2s}
+.btn:hover{opacity:.9} .btn:active{transform:scale(.98)}
+.sk{border-radius:14px;background:var(--surface);animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.5}}
 @media (prefers-reduced-motion:reduce){.sk{animation:none}}
+.state{padding:56px 4px 0}
+.state h1{font-size:28px;letter-spacing:-.03em;margin:14px 0 8px}
 </style>
 </head>
 <body>
-<main id="app" aria-live="polite">
-  <div class="sk" style="height:132px"></div>
-  <div class="sk" style="height:44px"></div>
-  <div class="sk" style="height:340px"></div>
-  <p class="hint" style="text-align:center">Загружаем прогноз…</p>
-</main>
+<main id="app" aria-live="polite"></main>
 <script>
 const tg = window.Telegram && Telegram.WebApp;
 const q = new URLSearchParams(location.search);
@@ -133,10 +175,10 @@ function theme(){
   if (!tg || !tg.themeParams || !tg.themeParams.bg_color) return;
   const p = tg.themeParams, s = document.documentElement.style;
   document.documentElement.dataset.scheme = tg.colorScheme;
-  const map = {'--bg': p.secondary_bg_color || p.bg_color, '--card': p.section_bg_color || p.bg_color,
-    '--text': p.text_color, '--hint': p.hint_color || p.subtitle_text_color, '--accent': p.button_color || p.link_color};
+  const map = {'--bg': p.bg_color, '--surface': p.secondary_bg_color || p.section_bg_color, '--text': p.text_color,
+    '--hint': p.hint_color || p.subtitle_text_color, '--soft': p.subtitle_text_color || p.hint_color, '--accent': p.text_color};
   for (const k in map) if (map[k]) s.setProperty(k, map[k]);
-  if (tg.setHeaderColor && tg.isVersionAtLeast && tg.isVersionAtLeast('6.1')) tg.setHeaderColor('secondary_bg_color');
+  if (tg.setHeaderColor && tg.isVersionAtLeast && tg.isVersionAtLeast('6.1')) tg.setHeaderColor('bg_color');
 }
 if (tg) { tg.ready(); tg.expand(); theme(); tg.onEvent && tg.onEvent('themeChanged', theme); }
 
@@ -150,6 +192,11 @@ const fTime = d => d ? d.toLocaleTimeString('ru-RU', {hour: '2-digit', minute: '
 const fDay = d => d ? d.toLocaleDateString('ru-RU', {day: 'numeric', month: 'short'}).replace('.', '') : '';
 const hzShort = h => (HZ[h] || [h])[0], hzLong = h => (HZ[h] || [h, h])[1];
 const callCls = c => c === 'UP' ? 'up' : c === 'DOWN' ? 'down' : 'none';
+const ICON = {
+  up: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M9 7h8v8"/></svg>',
+  down: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7l10 10M17 9v8H9"/></svg>',
+  warn: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 9v4M12 17h.01M10.3 3.9L2.4 18a2 2 0 001.7 3h15.8a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/></svg>'
+};
 
 function ago(d){
   if (!d) return '—';
@@ -162,158 +209,158 @@ function ago(d){
 function left(d){
   if (!d) return '—';
   let s = Math.floor((d - Date.now()) / 1000);
-  if (s <= 0) return 'идёт проверка';
+  if (s <= 0) return 'проверяем';
   const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60); s %= 60;
-  return h ? `${h} ч ${String(m).padStart(2, '0')} мин` : `${m} мин ${String(s).padStart(2, '0')} с`;
+  return h ? `${h}:${String(m).padStart(2, '0')} ч` : `${m}:${String(s).padStart(2, '0')}`;
 }
 
 function spark(arr){
   const v = (arr || []).filter(ok);
-  if (v.length < 2) return '<p class="hint">Нет данных для графика</p>';
-  const W = 300, Hh = 56, min = Math.min(...v), max = Math.max(...v), r = max - min || 1;
-  const pts = v.map((y, i) => [i / (v.length - 1) * W, 4 + (1 - (y - min) / r) * (Hh - 8)]);
+  if (v.length < 2) return '';
+  const W = 400, Hh = 64, min = Math.min(...v), max = Math.max(...v), r = max - min || 1;
+  const pts = v.map((y, i) => [i / (v.length - 1) * W, 6 + (1 - (y - min) / r) * (Hh - 12)]);
   const line = pts.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join('');
-  const c = v[v.length - 1] >= v[0] ? 'var(--up)' : 'var(--down)';
-  const ch = v[v.length - 1] / v[0] - 1;
-  return `<svg class="spark" viewBox="0 0 ${W} ${Hh}" preserveAspectRatio="none" aria-label="График цены за 7 дней">
-    <defs><linearGradient id="sg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${c}" stop-opacity=".22"/><stop offset="1" stop-color="${c}" stop-opacity="0"/></linearGradient></defs>
+  const c = v[v.length - 1] >= v[0] ? 'var(--up)' : 'var(--down)', [ex, ey] = pts[pts.length - 1];
+  return `<svg class="spark" viewBox="0 0 ${W} ${Hh}" preserveAspectRatio="none" role="img" aria-label="Цена SOL за 7 дней">
+    <defs><linearGradient id="sg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${c}" stop-opacity=".16"/><stop offset="1" stop-color="${c}" stop-opacity="0"/></linearGradient></defs>
     <path d="${line}L${W} ${Hh}L0 ${Hh}Z" fill="url(#sg)"/>
-    <path d="${line}" fill="none" stroke="${c}" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/></svg>
-    <div class="sparkmeta hint num"><span>7 дней · <span class="${ch >= 0 ? 'up' : 'down'}">${spct(ch)}</span></span><span>${usd(min)} – ${usd(max)}</span></div>`;
+    <path d="${line}" fill="none" stroke="${c}" stroke-width="1.6" vector-effect="non-scaling-stroke"/>
+    <circle cx="${ex - 3}" cy="${ey}" r="3" fill="${c}"/></svg>
+    <div class="sparkmeta hint num"><span>7д ${spct(v[v.length - 1] / v[0] - 1)}</span><span>${usd(min)} · ${usd(max)}</span></div>`;
 }
 
-function gauge(p, thr, cls){
-  const P = (v, r) => { const a = (-120 + 240 * v) * Math.PI / 180; return [100 + r * Math.sin(a), 100 - r * Math.cos(a)]; };
-  const arc = (a, b, r = 80) => { const [x0, y0] = P(a, r), [x1, y1] = P(b, r);
-    return `M${x0.toFixed(2)} ${y0.toFixed(2)}A${r} ${r} 0 ${(b - a) * 240 > 180 ? 1 : 0} 1 ${x1.toFixed(2)} ${y1.toFixed(2)}`; };
-  const col = cls === 'up' ? 'var(--up)' : cls === 'down' ? 'var(--down)' : 'var(--hint)';
-  let s = `<path d="${arc(0, 1)}" stroke="var(--track)" stroke-width="14" fill="none" stroke-linecap="round"/>`;
-  if (ok(thr) && thr > .5 && thr < 1) {
-    s += `<path d="${arc(0, 1 - thr)}" stroke="var(--down-soft)" stroke-width="14" fill="none"/>
-          <path d="${arc(thr, 1)}" stroke="var(--up-soft)" stroke-width="14" fill="none"/>`;
-    for (const v of [1 - thr, thr]) {
-      const [x0, y0] = P(v, 69), [x1, y1] = P(v, 91), [tx, ty] = P(v, 104);
-      s += `<line x1="${x0}" y1="${y0}" x2="${x1}" y2="${y1}" stroke="var(--hint)" stroke-width="2"/>
-            <text class="t" x="${tx}" y="${ty + 4}" text-anchor="middle">${pct(v)}</text>`;
-    }
-  }
-  if (ok(p)) {
-    const v = Math.min(1, Math.max(0, p));
-    if (Math.abs(v - .5) > .002) s += `<path d="${arc(Math.min(v, .5), Math.max(v, .5))}" stroke="${col}" stroke-width="14" fill="none"/>`;
-    const [kx, ky] = P(v, 80);
-    s += `<circle cx="${kx}" cy="${ky}" r="9" fill="var(--card)" stroke="${col}" stroke-width="4"/>`;
-  }
-  const [lx, ly] = P(0, 80), [rx] = P(1, 80);
-  s += `<text x="100" y="104" text-anchor="middle" font-size="38" font-weight="800">${pct(p)}</text>
-        <text class="t" x="100" y="124" text-anchor="middle" font-size="12">вероятность роста</text>
-        <text class="t" x="${lx}" y="${ly + 22}" text-anchor="middle">0%</text>
-        <text class="t" x="${rx}" y="${ly + 22}" text-anchor="middle">100%</text>`;
-  return `<svg class="gauge" viewBox="-12 -20 224 186" role="img" aria-label="Вероятность роста ${pct(p)}">${s}</svg>`;
+const LBL = {calm: ['Тихо', 'up'], normal: ['Как обычно', 'soft'], storm: ['Буря', 'down'], off: ['Не знаем', 'soft']};
+const p1 = x => ok(x) ? (x * 100).toFixed(x < 0.1 ? 2 : 1) + '%' : '—';
+const times = x => ok(x) ? '×' + x.toFixed(2) : '—';
+
+/* forecast range on a 0…max scale: typical mark, storm line, 80% band, median dot */
+function corridor(x){
+  const max = Math.max(x.hi || 0, x.storm_range || 0, x.typical || 0) * 1.25 || 1, at = v => Math.min(100, Math.max(0, v / max * 100));
+  const lab = LBL[x.label] || LBL.normal;
+  return `<div class="track" aria-hidden="true"><div class="rail"></div>
+      ${ok(x.storm_range) ? `<div class="zone" style="left:${at(x.storm_range)}%"></div><div class="mark storm" style="left:${at(x.storm_range)}%"><span>буря</span></div>` : ''}
+      ${ok(x.typical) ? `<div class="mark" style="left:${at(x.typical)}%"><span>обычно</span></div>` : ''}
+      ${ok(x.lo) && ok(x.hi) ? `<div class="band ${lab[1]}" style="left:${at(x.lo)}%;width:${at(x.hi) - at(x.lo)}%"></div>` : ''}
+      ${ok(x.range) ? `<div class="dot ${lab[1]}" style="left:${at(x.range)}%"></div>` : ''}</div>
+    <div class="scale num"><span>0%</span><span>80%: ${p1(x.lo)} – ${p1(x.hi)}</span><span>${p1(max)}</span></div>`;
 }
 
-function reasons(list){
-  if (!list || !list.length) return '<p class="hint">Модель не выделила заметных факторов.</p>';
-  const max = Math.max(.1, ...list.map(r => ok(r.push) ? Math.abs(r.push) : 0));
+function drivers(list){
+  if (!list || !list.length) return '<p class="hint">Заметных факторов нет.</p>';
+  const max = Math.max(.05, ...list.map(r => ok(r.push) ? Math.abs(r.push) : 0));
   return list.map(r => {
-    const v = ok(r.push) ? r.push : 0, w = Math.abs(v) / max * 50, c = v >= 0 ? 'up' : 'down';
-    return `<div class="reason"><span class="rname" title="${esc(r.name)}">${esc(r.name)}</span>
-      <span class="scheme" title="Схема ${esc(r.scheme)}">${esc(r.scheme) || '·'}</span>
-      <span class="bar"><i style="background:var(--${c});${v >= 0 ? 'left:50%' : 'right:50%'};width:${w}%"></i></span>
-      <span class="push num ${ok(r.push) ? c : 'hint'}">${ok(r.push) ? spct(r.push, 0).replace('%', '') + ' пп' : '—'}</span></div>`;
+    const v = ok(r.push) ? r.push : 0, w = Math.abs(v) / max * 50, c = v >= 0 ? 'down' : 'up';
+    return `<div class="drv"><span class="n" title="${esc(r.name)}"><em class="mono">${esc(r.scheme || '·')}</em>${esc(r.name)}</span>
+      <span class="b"><i style="background:var(--${c});${v >= 0 ? 'left:50%' : 'right:50%'};width:${w}%"></i></span>
+      <span class="v num ${c}">${(v >= 0 ? '+' : '−') + Math.abs(v * 100).toFixed(0)}%</span></div>`;
   }).join('');
 }
 
-function nTxt(n){ return ok(n) ? `${n}${n > 0 && n < 30 ? ' · мало' : ''}` : '—'; }
-
-function track(x){
-  const L = x.live || {}, B = x.backtest || {};
-  const row = (name, hit, cov, n, cls = '') => `<tr class="${cls}"><td>${name}</td><td class="num"><b>${pct(hit)}</b></td><td class="num">${pct(cov)}</td><td class="num">${nTxt(n)}</td></tr>`;
-  return `<table class="stats"><thead><tr><th></th><th>Точность</th><th>Покрытие</th><th>Сигналов</th></tr></thead><tbody>
-    ${row('Live 30 дн', L.hit30, L.cov30, L.n30)}
-    ${row('Live 90 дн', L.hit90, L.cov90, L.n90)}
-    ${row('Бэктест', B.hit, B.coverage, B.n, 'bt')}</tbody></table>
-    <p class="hint note">Точность — доля верных среди выданных сигналов (монетка ≈ 50%). Покрытие — как часто модель вообще даёт сигнал. Live считается только по реальным прогнозам после запуска.</p>`;
+function trust(x){
+  const B = x.backtest || {}, L = x.live || {};
+  if (x.enabled === false) return `<div class="trust"><span class="tag no">ОТКЛЮЧЁН</span>
+    <p class="soft" style="margin-top:10px">На этом горизонте модель не обогнала простое «как обычно», поэтому здесь она молчит.</p></div>`;
+  return `<div class="trust"><span class="tag ok">РАБОТАЕТ НА ИСТОРИИ</span>
+    <div class="grid" style="margin-top:12px">
+      <div><small>Лучше, чем «как обычно»</small><b class="num">${ok(B.r2_clim) ? '+' + Math.round(B.r2_clim * 100) + '%' : '—'}</b> <span class="hint" style="font-size:12px">R²</span></div>
+      <div><small>Попадание в коридор 80%</small><b class="num">${pct(B.cover)}</b> <span class="hint" style="font-size:12px">бэктест</span></div>
+      <div><small>«Буря» против «тихо»</small><b class="num">${times(B.lift)}</b> <span class="hint" style="font-size:12px">размах</span></div>
+      <div><small>Коридор, live 30 дн</small><b class="num">${pct(L.cover30)}</b> <span class="hint num" style="font-size:12px">n ${ok(L.n30) ? L.n30 : 0}</span></div>
+    </div>
+    <p class="verdictline">Размах движения предсказуем, направление — нет. Там, где модель ждала самые сильные движения, они в среднем были в ${ok(B.lift) ? B.lift.toFixed(1) : '—'} раза больше, чем там, где она ждала тишину. Проверено на 2025–2026, которые модель не видела.</p></div>`;
 }
 
-function feed(h){
-  if (!H) return '<p class="hint">История сейчас недоступна.</p>';
-  const rows = H.filter(e => e && e.h === h).slice(-30).reverse();
-  if (!rows.length) return '<p class="hint">Для этого горизонта ещё нет прогнозов.</p>';
-  const cnt = {hit: 0, miss: 0, flat: 0, pend: 0};
+function record(h){
+  if (!H) return '<div class="empty">История сейчас недоступна.</div>';
+  const rows = H.filter(e => e && e.h === h).slice(-30);
+  if (!rows.length) return '<div class="empty">Прогнозов на этом горизонте ещё не было. Каждый проверится через его горизонт и появится здесь.</div>';
+  const cnt = {inside: 0, above: 0, below: 0, pend: 0};
   rows.forEach(e => cnt[e.result in cnt ? e.result : 'pend']++);
-  const R = {hit: ['✓ верно', 'up'], miss: ['✕ мимо', 'down'], flat: ['– флэт', 'flat']};
-  const li = rows.map(e => {
-    const d = dt(e.t), [rt, rc] = R[e.result] || ['… ждём', 'pend'];
-    const mv = ok(e.price) && ok(e.priceAfter) ? spct(e.priceAfter / e.price - 1) : '';
-    const lbl = e.call === 'UP' ? '▲ Вверх' : e.call === 'DOWN' ? '▼ Вниз' : 'Нет';
-    return `<li><span class="when num">${fDay(d)}, ${fTime(d)}<small>${usd(e.price)}${mv ? ' → ' + mv : ''}</small></span>
-      <span class="pill ${callCls(e.call)}">${lbl}</span><span class="num hint">${pct(e.p_up)}</span>
-      <span class="res ${rc}">${rt}</span></li>`;
+  const cells = rows.map(e => `<span class="${e.result || 'pend'}" title="${esc(fDay(dt(e.t)) + ' ' + fTime(dt(e.t)))}"></span>`).join('')
+    + '<span style="background:none"></span>'.repeat(Math.max(0, 30 - rows.length));
+  const R = {inside: ['в коридоре', 'up'], above: ['сильнее', 'down'], below: ['слабее', 'hint']};
+  const li = rows.slice().reverse().map(e => {
+    const d = dt(e.t), [rt, rc] = R[e.result] || ['ждём', 'hint'];
+    return `<li><span><span class="num">${fDay(d)} ${fTime(d)}</span><small class="num">${(LBL[e.label] || LBL.normal)[0]} · ${p1(e.lo)}–${p1(e.hi)}</small></span>
+      <span class="num">${ok(e.range_act) ? p1(e.range_act) : '…'}</span><span class="${rc}">${rt}</span></li>`;
   }).join('');
-  return `<div class="summary num"><span class="up">✓ ${cnt.hit}</span><span class="down">✕ ${cnt.miss}</span><span class="hint">– ${cnt.flat}</span><span class="hint">… ${cnt.pend}</span><span class="hint" style="margin-left:auto;font-weight:400">последние ${rows.length}</span></div><ul class="feed">${li}</ul>`;
+  return `<div class="strip" role="img" aria-label="Последние ${rows.length} прогнозов">${cells}</div>
+    <div class="counts num"><span class="up">${cnt.inside} в коридоре</span><span class="down">${cnt.above} сильнее</span><span class="hint">${cnt.below} слабее</span><span class="hint">${cnt.pend} ждём</span></div>
+    <details><summary>Все прогнозы</summary><ul class="log">${li}</ul></details>`;
 }
 
 function render(){
   const keys = Object.keys(D.horizons || {});
   if (!keys.length) return fail('В данных нет ни одного горизонта.');
   if (!sel || !D.horizons[sel]) sel = D.horizons[D.main] ? D.main : keys[0];
-  const x = D.horizons[sel], cls = callCls(x.call), up = new Date(D.updated);
-  const stale = !isNaN(up) && Date.now() - up > 3 * 3600e3;
-  const chk = dt(x.checkAt), L = x.live || {};
-  const ev = D.event ? (typeof D.event === 'string' ? D.event : D.event.text || D.event.reason || D.event.title || D.event.name || '') : '';
-  const label = {up: '▲ ВВЕРХ', down: '▼ ВНИЗ', none: 'НЕТ СИГНАЛА'}[cls];
-  const sub = cls === 'none'
-    ? (x.enabled === false ? 'На этом горизонте бэктест не нашёл надёжного сигнала, поэтому модель здесь молчит всегда.' : ev ? 'Модель на паузе из-за события на рынке.' : 'Вероятность не вышла за порог — модель воздерживается. Это нормально: так бывает чаще всего.')
-    : `Модель считает ${cls === 'up' ? 'рост' : 'падение'} более вероятным на горизонте ${hzLong(sel)}. Это вероятность, не гарантия.`;
+  const x = D.horizons[sel], up = dt(D.updated), chk = dt(x.checkAt), [word, cls] = LBL[x.label] || LBL.normal;
+  const stale = up && Date.now() - up > 3 * 3600e3;
+  const ev = typeof D.event === 'string' ? D.event : '';
+  const half = ok(x.range) && ok(x.price) ? x.range / 2 * x.price : null;
+  const lede = x.label === 'off' ? 'На этом горизонте модель не лучше простого «как обычно».'
+    : `Ожидаемый размах за ${esc(hzLong(sel))} — около <b class="num">${p1(x.range)}</b>, ${x.label === 'storm' ? 'заметно больше обычного' : x.label === 'calm' ? 'меньше обычного' : 'примерно как обычно'} (${p1(x.typical)}). Куда пойдёт цена, модель не знает.`;
+  let i = 0; const n = () => `style="--i:${i++}"`;
 
   app.innerHTML = `
-  <section class="card">
-    <div class="top"><div><div class="coin">SOL / USD</div><div class="price num">${usd(D.price)}</div></div>
-      <span class="chg num ${ok(D.change24h) ? (D.change24h >= 0 ? 'up' : 'down') : 'hint'}">${spct(D.change24h)} за 24ч</span></div>
+  <header class="in" ${n()}>
+    <div class="head"><div><div class="ticker">SOL / USD</div><div class="price num">${usd(D.price)}</div></div>
+      <span class="chg num ${ok(D.change24h) ? (D.change24h >= 0 ? 'up' : 'down') : 'hint'}">${spct(D.change24h)} 24ч</span></div>
     ${spark(D.spark)}
-  </section>
-  <nav class="tabs" role="tablist">${keys.map(k => { const c = callCls(D.horizons[k].call);
-    return `<button role="tab" data-h="${esc(k)}" aria-selected="${k === sel}">${esc(hzShort(k))}${c !== 'none' ? `<span class="dot ${k === sel ? '' : c}"></span>` : ''}</button>`; }).join('')}</nav>
-  ${ev ? `<div class="banner" role="status"><span>⚠️</span><div><b>Сигналы приостановлены.</b> ${esc(ev)}</div></div>` : ''}
-  <section class="card call">
-    <div class="label ${cls}">${label}</div>
-    <div class="hint sub">${sub}</div>
-    ${gauge(x.p_up, x.threshold, cls)}
-    <div class="meta"><div><span class="hint">Горизонт</span><b>${esc(hzLong(sel))}</b></div>
-      <div><span class="hint">Проверка${chk ? ' в ' + fTime(chk) : ''}</span><b class="num" id="cd">${left(chk)}</b></div></div>
-    <div class="liveline">Live за 30 дн: точность <b class="num">${pct(L.hit30)}</b> на ${ok(L.n30) ? L.n30 : '—'} сигналах · бэктест ${pct((x.backtest || {}).hit)} <a href="#track">трек-рекорд ↓</a></div>
-  </section>
-  <section class="card"><h2>Почему</h2>${reasons(x.reasons)}
-    <p class="hint note">Сдвиг вероятности роста в процентных пунктах. Буква — схема признака.</p></section>
-  <section class="card" id="track"><h2>Трек-рекорд · ${esc(hzShort(sel))}</h2>${track(x)}${feed(sel)}</section>
-  <footer class="hint">Обновлено <span class="${stale ? 'down' : ''}">${ago(isNaN(up) ? null : up)}</span>${stale ? ' — данные могли устареть' : ''}<br><br>
-    Не финансовый совет. Модель часто ошибается; смотрите трек-рекорд.</footer>`;
+  </header>
+  <nav class="hz in" ${n()} role="tablist" aria-label="Горизонт прогноза">${keys.map(k => { const h = D.horizons[k], c = (LBL[h.label] || LBL.normal)[1];
+    return `<button role="tab" data-h="${esc(k)}" aria-selected="${k === sel}" class="${h.enabled === false ? 'off' : ''}">${esc(hzShort(k))}${c === 'up' || c === 'down' ? `<i style="background:var(--${c})"></i>` : ''}</button>`; }).join('')}</nav>
+  ${ev ? `<div class="banner in" ${n()} role="status">${ICON.warn}<p><b>Внимание.</b> ${esc(ev)}</p></div>` : ''}
+  <div class="verdict in" ${n()}>
+    <div class="eyebrow">Движение SOL в ближайшие ${esc(hzLong(sel))}</div>
+    <div class="word ${cls}">${word}</div>
+    <p class="lede">${lede}</p>
+  </div>
+  <div class="meter in" ${n()}>
+    <div class="row"><span class="hint" style="font-size:13px">Ожидаемый размах</span><span class="pv num ${cls}">${p1(x.range)}<span class="hint" style="font-size:12px;margin-left:8px">${times(x.ratio)}</span></span></div>
+    ${corridor(x)}
+    ${half ? `<p class="hint" style="font-size:12px;margin-top:10px">В деньгах: ход примерно на ±${usd(half)} от ${usd(x.price)}, то есть ${usd(x.price - half)} – ${usd(x.price + half)}, если цена качнётся симметрично.</p>` : ''}
+    <div class="facts">
+      <div><small>Шанс бури</small><b class="num ${x.p_storm >= .4 ? 'down' : ''}">${pct(x.p_storm)}</b></div>
+      <div><small>Проверка</small><b class="num" id="cd">${left(chk)}</b></div>
+      <div><small>Обновлено</small><b class="${stale ? 'down' : ''}">${ago(up).replace(' назад', '')}</b></div>
+    </div>
+  </div>
+  <section class="in" ${n()}><h2>Насколько верить</h2><p class="sub">Прогноз без трек-рекорда ничего не стоит.</p>${trust(x)}</section>
+  <section class="in" ${n()}><h2>Что раскачивает</h2><p class="sub">Как фактор меняет ожидаемый размах относительно среднего за всю историю. Буква — схема.</p>${drivers(x.reasons)}</section>
+  <section class="in" ${n()} id="track"><h2>Последние прогнозы</h2><p class="sub">Зелёный — размах попал в коридор, красный — движение оказалось сильнее, серый — слабее.</p>${record(sel)}</section>
+  <footer class="in" ${n()}><p>Не финансовый совет. Прогноз размаха не говорит, куда пойдёт цена.</p><p>Данные: Binance, DefiLlama, alternative.me. Обновление каждый час.</p></footer>`;
 
-  app.querySelectorAll('.tabs button').forEach(b => b.onclick = () => { sel = b.dataset.h; render(); });
+  app.querySelectorAll('.hz button').forEach(b => b.onclick = () => { sel = b.dataset.h; tg && tg.HapticFeedback && tg.HapticFeedback.selectionChanged(); render(); });
   clearInterval(timer);
   timer = setInterval(() => { const el = document.getElementById('cd'); if (el) el.textContent = left(chk); }, 1000);
 }
 
+function skeleton(){
+  app.innerHTML = `<div class="sk" style="height:40px;width:55%"></div><div class="sk" style="height:64px;margin-top:16px"></div>
+    <div class="sk" style="height:40px;margin-top:22px"></div><div class="sk" style="height:56px;width:60%;margin-top:22px"></div>
+    <div class="sk" style="height:150px;margin-top:22px"></div>`;
+}
+
 function fail(msg){
   clearInterval(timer);
-  app.innerHTML = `<div class="card state"><div class="big">📡</div><p><b>Не удалось загрузить прогноз</b></p>
-    <p class="hint">${esc(msg)}</p><button class="btn" id="retry">Повторить</button></div>
-    <footer class="hint">Не финансовый совет. Модель часто ошибается; смотрите трек-рекорд.</footer>`;
+  app.innerHTML = `<div class="state"><div class="ticker">SOL / USD</div><h1>Прогноз не загрузился</h1>
+    <p class="soft">${esc(msg)}</p><button class="btn" id="retry">Повторить</button></div>
+    <footer><p>Не финансовый совет.</p></footer>`;
   document.getElementById('retry').onclick = load;
 }
 
 async function getJSON(url){
   const r = await fetch(url, {cache: 'no-cache'});
-  if (!r.ok) throw new Error(`Сервер ответил ${r.status} на ${url}`);
+  if (!r.ok) throw new Error(`Сервер ответил ${r.status} на ${url}.`);
   return r.json();
 }
 
 async function load(){
-  app.innerHTML = '<div class="sk" style="height:132px"></div><div class="sk" style="height:44px"></div><div class="sk" style="height:340px"></div><p class="hint" style="text-align:center">Загружаем прогноз…</p>';
+  skeleton();
   const [d, h] = await Promise.allSettled([getJSON(SRC), getJSON(HIST)]);
   if (d.status === 'rejected') return fail(navigator.onLine === false ? 'Нет подключения к интернету.' : d.reason.message || 'Ошибка сети.');
   D = d.value; H = h.status === 'fulfilled' && Array.isArray(h.value) ? h.value : null;
-  try { render(); } catch (e) { fail('Данные в неожиданном формате.'); }
+  try { render(); } catch (e) { console.error(e); fail('Данные пришли в неожиданном формате.'); }
 }
 load();
 </script>
