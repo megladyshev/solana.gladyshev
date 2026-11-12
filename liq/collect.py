@@ -12,7 +12,9 @@ Writes to data/liq/ (one file per kind per UTC day):
 Known limits:
   * Binance pushes at most one liquidation per symbol per second (the largest snapshot), so its counts are a floor.
   * All three exchanges are recorded for every USDT perp; Bybit is subscribed symbol by symbol at connect.
-  * OKX replays its most recent liquidations on every (re)connect: drop duplicates when reading (liq/summary.py does).
+  * OKX replays its most recent liquidations on every (re)connect, and the backfill below re-fetches the last ~24 h
+    for SOL, BTC and ETH: drop duplicates when reading (liq/summary.py does). Binance and Bybit have no such history,
+    so their gaps while the computer is off stay gaps.
 """
 import asyncio
 import csv
@@ -28,6 +30,7 @@ import websockets
 
 OUT = Path(__file__).resolve().parent.parent / "data" / "liq"
 OI_COINS = ["SOL", "BTC", "ETH"]
+BACKFILL = ["SOL-USDT", "BTC-USDT", "ETH-USDT"]          # OKX history (about 24 h) fetched to fill gaps
 HEAD = {"liq": ["ts_ms", "exchange", "coin", "symbol", "side", "price", "qty", "usd"],
         "oi": ["ts_ms", "coin", "open_interest", "mark", "index", "funding"],
         "up": ["ts_ms", "binance", "bybit", "okx"]}
@@ -110,8 +113,52 @@ async def bybit():
             task.cancel()
 
 
+async def okx_instruments():
+    return {i["instId"]: i for i in (await asyncio.to_thread(get, "https://www.okx.com/api/v5/public/instruments?instType=SWAP"))["data"]}
+
+
+def okx_rows(inst, x):
+    """Write one OKX liquidation block (the same shape from the websocket and from the REST history)."""
+    i = inst.get(x["instId"])
+    if not i:
+        return 0
+    for dd in x.get("details", []):
+        px, sz, ctv = float(dd["bkPx"]), float(dd["sz"]), float(i["ctVal"])
+        if i.get("ctType") == "inverse":          # contract value in USD
+            usd, qty = sz * ctv, sz * ctv / px if px else 0
+        else:                                     # contract value in coins
+            qty = sz * ctv
+            usd = qty * px
+        side = "short" if dd["side"] == "buy" else "long"
+        write("liq", [int(dd["ts"]), "okx", coin_of(x["instId"]), x["instId"], side, px, round(qty, 6), round(usd, 2)])
+    return len(x.get("details", []))
+
+
+async def okx_backfill():
+    """OKX keeps about 24 h of liquidations. On start and every 6 h, fetch them for the main coins, so the hours
+    when this computer was off are filled in. Rows already recorded come again; readers drop duplicates."""
+    while True:
+        try:
+            inst = await okx_instruments()
+            for uly in BACKFILL:
+                url = f"https://www.okx.com/api/v5/public/liquidation-orders?instType=SWAP&uly={uly}&state=filled&limit=100"
+                after, n = "", 0
+                for _ in range(100):                      # 100 rows a page; about a day for BTC is ~30 pages
+                    data = (await asyncio.to_thread(get, url + after))["data"]
+                    ts = [int(dd["ts"]) for b in data for dd in b.get("details", [])]
+                    if not ts:
+                        break
+                    n += sum(okx_rows(inst, b) for b in data)
+                    after = f"&after={min(ts)}"
+                    await asyncio.sleep(0.2)
+                print(f"{datetime.now():%H:%M:%S} okx backfill {uly}: {n} rows (last ~24 h)", flush=True)
+        except Exception as e:  # noqa: BLE001
+            print(f"{datetime.now():%H:%M:%S} okx backfill failed: {e}", flush=True)
+        await asyncio.sleep(6 * 3600)
+
+
 async def okx():
-    inst = {i["instId"]: i for i in (await asyncio.to_thread(get, "https://www.okx.com/api/v5/public/instruments?instType=SWAP"))["data"]}
+    inst = await okx_instruments()
     async with websockets.connect("wss://ws.okx.com:443/ws/v5/public", ping_interval=None) as ws:
         await ws.send(json.dumps({"op": "subscribe", "args": [{"channel": "liquidation-orders", "instType": "SWAP"}]}))
         up["okx"] = 1
@@ -127,18 +174,7 @@ async def okx():
                     continue
                 j = json.loads(m)
                 for x in j.get("data", []):
-                    i = inst.get(x["instId"])
-                    if not i:
-                        continue
-                    for dd in x.get("details", []):
-                        px, sz, ctv = float(dd["bkPx"]), float(dd["sz"]), float(i["ctVal"])
-                        if i.get("ctType") == "inverse":          # contract value in USD
-                            usd, qty = sz * ctv, sz * ctv / px if px else 0
-                        else:                                     # contract value in coins
-                            qty = sz * ctv
-                            usd = qty * px
-                        side = "short" if dd["side"] == "buy" else "long"
-                        write("liq", [int(dd["ts"]), "okx", coin_of(x["instId"]), x["instId"], side, px, round(qty, 6), round(usd, 2)])
+                    okx_rows(inst, x)
         finally:
             task.cancel()
 
@@ -167,7 +203,7 @@ async def main():
         print("another collector is already running: exiting", flush=True)
         return
     print(f"collecting into {OUT} · Ctrl+C to stop", flush=True)
-    await asyncio.gather(run_forever("binance", binance), run_forever("bybit", bybit), run_forever("okx", okx), minute())
+    await asyncio.gather(run_forever("binance", binance), run_forever("bybit", bybit), run_forever("okx", okx), minute(), okx_backfill())
 
 
 if __name__ == "__main__":
