@@ -17,6 +17,8 @@ Known limits:
 import asyncio
 import csv
 import json
+import socket
+import sys
 import time
 import urllib.request
 from datetime import datetime, timezone
@@ -158,11 +160,20 @@ async def minute():
 
 async def main():
     OUT.mkdir(parents=True, exist_ok=True)
+    lock = socket.socket()
+    try:                                       # one collector per machine: a second copy would write duplicates
+        lock.bind(("127.0.0.1", 47231))
+    except OSError:
+        print("another collector is already running: exiting", flush=True)
+        return
     print(f"collecting into {OUT} · Ctrl+C to stop", flush=True)
     await asyncio.gather(run_forever("binance", binance), run_forever("bybit", bybit), run_forever("okx", okx), minute())
 
 
 if __name__ == "__main__":
+    if sys.stdout is None:                     # started with pythonw (autostart): no console, log to a file
+        OUT.mkdir(parents=True, exist_ok=True)
+        sys.stdout = sys.stderr = open(OUT / "collector.log", "a", buffering=1, encoding="utf-8")
     try:
         asyncio.run(main())
     except KeyboardInterrupt:

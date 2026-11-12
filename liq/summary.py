@@ -7,7 +7,7 @@ from pathlib import Path
 import pandas as pd
 
 D = Path(__file__).resolve().parent.parent / "data" / "liq"
-load = lambda kind: pd.concat([pd.read_csv(f) for f in sorted(D.glob(f"{kind}_*.csv"))], ignore_index=True) if list(D.glob(f"{kind}_*.csv")) else pd.DataFrame()
+load = lambda kind: pd.concat([pd.read_csv(f) for f in sorted(D.glob(f"{kind}_*.csv*"))], ignore_index=True) if list(D.glob(f"{kind}_*.csv*")) else pd.DataFrame()   # .csv and .csv.gz
 
 liq, up = load("liq"), load("up")
 if liq.empty:
