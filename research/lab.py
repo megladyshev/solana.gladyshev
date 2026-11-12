@@ -27,7 +27,9 @@ HOLDOUT_UNLOCK = ROOT / "research" / "HOLDOUT_UNLOCKED"   # created only for the
 def funding(symbol="SOLUSDT"):
     """Perp funding history (rate per payment, at its timestamp)."""
     f = data.D / f"{symbol}_funding.csv"
-    df = pd.read_csv(f, index_col=0, parse_dates=[0]) if f.exists() else None
+    df = pd.read_csv(f, index_col=0) if f.exists() else None
+    if df is not None:
+        df.index = pd.to_datetime(df.index, utc=True, format="mixed")   # timestamps carry a few ms
     t = int(df.index[-1].timestamp() * 1000) + 1 if df is not None else int(pd.Timestamp(data.START, tz="UTC").timestamp() * 1000)
     rows = []
     while True:
@@ -80,9 +82,13 @@ def pnl(pos, close, fund=None, cost=COST):
     out = gross - fees
     if fund is not None:                                   # long pays, short receives the funding at its timestamp
         f = fund["rate"].groupby(fund.index.floor("h")).sum()     # payment times carry a few ms of jitter
-        fr = f.reindex(close.index.shift(1, freq="h")).fillna(0).values
+        fr = f.reindex(close.index).fillna(0).shift(-1).fillna(0).values   # paid at the next bar's close
         out = out - pos * fr
     return out.shift(1).dropna()                           # booked at t+1
+
+
+def bars_per_year(x):
+    return pd.Timedelta(days=365) / pd.Series(x.index).diff().median()
 
 
 def stats(ret, pos=None):
@@ -90,7 +96,7 @@ def stats(ret, pos=None):
     ret = ret.dropna()
     if len(ret) < 48:
         return {}
-    ann = 8760
+    ann = bars_per_year(ret)
     sr = ret.mean() / ret.std() * np.sqrt(ann) if ret.std() > 0 else 0.0
     eq = (1 + ret).cumprod()
     dd = float((eq / eq.cummax() - 1).min())
@@ -111,6 +117,25 @@ def stats(ret, pos=None):
     return out
 
 
+def alpha(ret, bench):
+    """Annualised alpha of hourly scheme returns over the benchmark (OLS), with a day-block bootstrap
+    90% interval and t. Alpha is what the scheme earns beyond its average exposure to the market."""
+    j = pd.concat([ret, bench], axis=1, keys=["s", "b"]).dropna()
+    if len(j) < 200:
+        return {}
+    def fit(x):
+        beta = np.cov(x.s, x.b)[0, 1] / x.b.var()
+        return (x.s.mean() - beta * x.b.mean()) * ann, beta
+    ann = bars_per_year(j)
+    a, beta = fit(j)
+    days = [g for _, g in j.groupby(j.index.floor("D"))]
+    rng = np.random.default_rng(1)
+    bs = [fit(pd.concat([days[i] for i in rng.integers(0, len(days), len(days))]))[0] for _ in range(300)]
+    se = float(np.std(bs))
+    return {"alpha": round(float(a), 3), "alpha90": [round(float(np.percentile(bs, 5)), 3), round(float(np.percentile(bs, 95)), 3)],
+            "t": round(float(a / se), 2) if se > 0 else None, "beta": round(float(beta), 2)}
+
+
 def compare(name, pos, close, fund, periods=("DISCOVERY", "VALIDATION")):
     """Scheme vs buy-and-hold, per period. Returns a dict and prints one line per period."""
     res = {}
@@ -123,3 +148,29 @@ def compare(name, pos, close, fund, periods=("DISCOVERY", "VALIDATION")):
             print(f"{name:34} {p:10} SR {s['sharpe']:+.2f} {s['sharpe90']} CAGR {s['cagr']:+.1%} DD {s['maxdd']:.0%} "
                   f"exp {s.get('exposure', 0):.0%} trades {s.get('trades', 0)} | hold SR {b['sharpe']:+.2f} CAGR {b['cagr']:+.1%}")
     return res
+
+
+def klines15(symbol):
+    """15-minute spot candles indexed by close time, cached (same rules as data.klines)."""
+    import time as _t
+    f = data.D / f"{symbol}_15m.csv"
+    df = pd.read_csv(f, index_col=0, parse_dates=[0]) if f.exists() else None
+    t = int(df.index[-1].timestamp() * 1000) - 900_000 + 1 if df is not None else int(pd.Timestamp(data.START, tz="UTC").timestamp() * 1000)
+    rows = []
+    while True:
+        k = json.loads(data.get(f"https://data-api.binance.vision/api/v3/klines?symbol={symbol}&interval=15m&startTime={t}&limit=1000"))
+        if not k:
+            break
+        rows += k
+        t = k[-1][0] + 1
+        if len(k) < 1000:
+            break
+    now = _t.time() * 1000
+    rows = [r for r in rows if r[6] < now]
+    if rows:
+        new = pd.DataFrame({"close": [float(r[4]) for r in rows], "high": [float(r[2]) for r in rows], "low": [float(r[3]) for r in rows]},
+                           index=pd.to_datetime([r[0] + 900_000 for r in rows], unit="ms", utc=True))
+        df = new if df is None else pd.concat([df, new])
+        df = df[~df.index.duplicated(keep="last")].sort_index()
+        df.to_csv(f)
+    return df
