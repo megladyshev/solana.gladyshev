@@ -6,8 +6,15 @@ from pathlib import Path
 
 import pandas as pd
 
-D = Path(__file__).resolve().parent.parent / "data" / "liq"
-load = lambda kind: pd.concat([pd.read_csv(f) for f in sorted(D.glob(f"{kind}_*.csv*"))], ignore_index=True) if list(D.glob(f"{kind}_*.csv*")) else pd.DataFrame()   # .csv and .csv.gz
+DATA = Path(__file__).resolve().parent.parent / "data"
+DIRS = [DATA / "liq", DATA / "liq-repo" / "pc", DATA / "liq-repo" / "cloud"]   # this computer + the liq-data branch (liq/sync.py)
+
+
+def load(kind):
+    fs = [f for d in DIRS for f in sorted(d.glob(f"{kind}_*.csv*"))]          # .csv and .csv.gz
+    return pd.concat([pd.read_csv(f) for f in fs], ignore_index=True).drop_duplicates() if fs else pd.DataFrame()
+
+
 
 liq, up = load("liq"), load("up")
 if liq.empty:

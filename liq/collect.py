@@ -2,7 +2,8 @@
 Binance open interest, mark/index price and funding. This data is not in any free history, so it has to be
 recorded from now on.
 
-    python liq/collect.py          runs until stopped (Ctrl+C); reconnects by itself
+    python liq/collect.py                  runs until stopped (Ctrl+C); reconnects by itself
+    python liq/collect.py --backfill-once  only fetch OKX's last ~24 h and exit (what the GitHub job runs)
 
 Writes to data/liq/ (one file per kind per UTC day):
     liq_YYYY-MM-DD.csv     ts_ms, exchange, coin, symbol, side (the position that was liquidated), price, qty, usd
@@ -20,6 +21,7 @@ import asyncio
 import csv
 import json
 import socket
+import subprocess
 import sys
 import time
 import urllib.request
@@ -134,26 +136,37 @@ def okx_rows(inst, x):
     return len(x.get("details", []))
 
 
-async def okx_backfill():
-    """OKX keeps about 24 h of liquidations. On start and every 6 h, fetch them for the main coins, so the hours
-    when this computer was off are filled in. Rows already recorded come again; readers drop duplicates."""
+async def okx_backfill_once():
+    """OKX keeps about 24 h of liquidations: fetch them for the main coins. Rows already recorded come again;
+    readers drop duplicates."""
+    inst = await okx_instruments()
+    for uly in BACKFILL:
+        url = f"https://www.okx.com/api/v5/public/liquidation-orders?instType=SWAP&uly={uly}&state=filled&limit=100"
+        after, n = "", 0
+        for _ in range(100):                              # 100 rows a page; about a day for BTC is ~30 pages
+            data = (await asyncio.to_thread(get, url + after))["data"]
+            ts = [int(dd["ts"]) for b in data for dd in b.get("details", [])]
+            if not ts:
+                break
+            n += sum(okx_rows(inst, b) for b in data)
+            after = f"&after={min(ts)}"
+            await asyncio.sleep(0.2)
+        print(f"{datetime.now():%H:%M:%S} okx backfill {uly}: {n} rows (last ~24 h)", flush=True)
+
+
+async def every_6h():
+    """On start and every 6 h: fill the hours this computer was off from OKX, then sync with GitHub (liq/sync.py)."""
     while True:
         try:
-            inst = await okx_instruments()
-            for uly in BACKFILL:
-                url = f"https://www.okx.com/api/v5/public/liquidation-orders?instType=SWAP&uly={uly}&state=filled&limit=100"
-                after, n = "", 0
-                for _ in range(100):                      # 100 rows a page; about a day for BTC is ~30 pages
-                    data = (await asyncio.to_thread(get, url + after))["data"]
-                    ts = [int(dd["ts"]) for b in data for dd in b.get("details", [])]
-                    if not ts:
-                        break
-                    n += sum(okx_rows(inst, b) for b in data)
-                    after = f"&after={min(ts)}"
-                    await asyncio.sleep(0.2)
-                print(f"{datetime.now():%H:%M:%S} okx backfill {uly}: {n} rows (last ~24 h)", flush=True)
+            await okx_backfill_once()
         except Exception as e:  # noqa: BLE001
             print(f"{datetime.now():%H:%M:%S} okx backfill failed: {e}", flush=True)
+        try:
+            r = await asyncio.to_thread(subprocess.run, [sys.executable, str(Path(__file__).with_name("sync.py"))],
+                                        capture_output=True, text=True, timeout=600)
+            print(f"{datetime.now():%H:%M:%S} sync: {(r.stdout + r.stderr).strip()[-300:]}", flush=True)
+        except Exception as e:  # noqa: BLE001
+            print(f"{datetime.now():%H:%M:%S} sync failed: {e}", flush=True)
         await asyncio.sleep(6 * 3600)
 
 
@@ -203,7 +216,7 @@ async def main():
         print("another collector is already running: exiting", flush=True)
         return
     print(f"collecting into {OUT} · Ctrl+C to stop", flush=True)
-    await asyncio.gather(run_forever("binance", binance), run_forever("bybit", bybit), run_forever("okx", okx), minute(), okx_backfill())
+    await asyncio.gather(run_forever("binance", binance), run_forever("bybit", bybit), run_forever("okx", okx), minute(), every_6h())
 
 
 if __name__ == "__main__":
@@ -211,6 +224,6 @@ if __name__ == "__main__":
         OUT.mkdir(parents=True, exist_ok=True)
         sys.stdout = sys.stderr = open(OUT / "collector.log", "a", buffering=1, encoding="utf-8")
     try:
-        asyncio.run(main())
+        asyncio.run(okx_backfill_once() if "--backfill-once" in sys.argv else main())   # --backfill-once: the cloud job
     except KeyboardInterrupt:
         pass

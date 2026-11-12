@@ -1,0 +1,45 @@
+name: liq-backfill
+
+# Every 6 h: fetch OKX's last ~24 h of SOL/BTC/ETH liquidations and merge them into cloud/ on the liq-data branch.
+# Plain Python, no secrets. The home computer pushes its own live recordings to pc/ on the same branch.
+on:
+  schedule:
+    - cron: "23 */6 * * *"
+  workflow_dispatch:
+  push:                                  # also once right after this workflow or the collector changes
+    branches: [main]
+    paths: [".github/workflows/liq-backfill.yml", "liq/collect.py", "liq/merge.py"]
+
+permissions:
+  contents: write
+
+concurrency: liq-data
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          ref: liq-data
+          path: data/liq-repo
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q "websockets==17.0.1"
+      - name: can this runner reach OKX?
+        run: curl -s -o /dev/null -w "%{http_code} okx\n" https://www.okx.com/api/v5/public/time
+      - run: python liq/collect.py --backfill-once
+      - run: python liq/merge.py data/liq data/liq-repo/cloud
+      - name: push to liq-data
+        working-directory: data/liq-repo
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@users.noreply.github.com
+          git add -A
+          git diff --cached --quiet && exit 0
+          git commit -m "cloud: OKX backfill $(date -u +%Y-%m-%dT%H)Z"
+          for i in 1 2 3; do git push && exit 0; git pull --rebase; done
+          exit 1
