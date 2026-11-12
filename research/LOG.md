@@ -107,3 +107,15 @@ Tally before HOLDOUT: about 115 variants across 30 ideas. Survivors are all one 
 | Flush pair 1 h | **+0.11 (t 1.2)** | −0.01 | +0.08 | passes → A |
 Rules for HOLDOUT are in HYPOTHESES.md, committed before the unlock.
 
+## HOLDOUT (2025-07-01 → 2026-11-12), run once, rules from commit fcab2e6
+Buy-and-hold: Sharpe −0.38, CAGR −38%, drawdown −75%.
+| Scheme | Sharpe | α/yr [90%] | Verdict |
+|---|---|---|---|
+| H1 flush 1 h | +0.07 | +0.02 [−0.16, 0.20], t 0.2 | passes the letter of the rule (Sharpe > 0), **no edge in substance** |
+| H2 flush 15 m | −0.93 | −0.18 [−0.40, 0.05] | **fails** |
+| H3 flush pair | −1.93 | −0.11 [−0.18, −0.03], t −2.3 | **fails** |
+
+Diagnosis (rules unchanged): gross next-hour bounce per H1 event is +49 bp (DISCOVERY, t 3.3) → +32 bp (VALIDATION, t 2.1) → +11 bp (HOLDOUT, t 1.3), against a 12 bp taker round trip. **The edge was real and has decayed below taker costs.**
+
+**Bottom line: out of about 115 variants across 30 ideas, no scheme makes money out of sample after costs.**
+
