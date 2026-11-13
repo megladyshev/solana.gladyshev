@@ -30,8 +30,14 @@ jobs:
           python-version: "3.11"
       - run: pip install -q "websockets==17.0.1"
       - name: can this runner reach OKX?
-        run: curl -s -o /dev/null -w "%{http_code} okx\n" https://www.okx.com/api/v5/public/time
-      - run: python liq/collect.py --backfill-once
+        run: |
+          for u in https://www.okx.com/api/v5/public/time "https://www.okx.com/api/v5/public/liquidation-orders?instType=SWAP&uly=SOL-USDT&state=filled&limit=1"; do
+            code=$(curl -s -o body.txt -w "%{http_code}" --max-time 15 "$u"); echo "::notice::OKX $code $(head -c 150 body.txt | tr -d '\n')"
+          done
+      - name: backfill
+        run: |
+          python liq/collect.py --backfill-once > out.txt 2>&1 || { echo "::error::$(tail -c 400 out.txt | tr '\n' ' ')"; exit 1; }
+          cat out.txt
       - run: python liq/merge.py data/liq data/liq-repo/cloud
       - name: push to liq-data
         working-directory: data/liq-repo
