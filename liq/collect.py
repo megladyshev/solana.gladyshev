@@ -46,6 +46,7 @@ def write(kind, row):
     if key not in _files:
         for k in [k for k in _files if k[0] == kind]:          # a new day: close yesterday's file
             _files.pop(k).close()
+        OUT.mkdir(parents=True, exist_ok=True)               # a fresh machine (the GitHub runner) has no data/liq yet
         f = OUT / f"{kind}_{day}.csv"
         new = not f.exists()
         _files[key] = f.open("a", newline="", encoding="utf-8")
