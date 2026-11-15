@@ -5,198 +5,213 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="description" content="Прогноз размаха движения SOL с честным трек-рекордом">
 <title>SOL · размах движения</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2312161b'/%3E%3Cpath d='M8 21l6-6 4 4 6-8' stroke='%233ecf8e' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%23131722'/%3E%3Cpath d='M7 20l5-6 4 3 6-8 3 3' stroke='%232962FF' stroke-width='2.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="https://unpkg.com/lightweight-charts@4.2.3/dist/lightweight-charts.standalone.production.js"></script>
 <style>
+/* Palette: TradingView. Type and controls: Apple (SF Pro on Apple devices, Inter elsewhere). */
 :root{
-  --bg:#f3f4f6; --surface:#ffffff; --raise:#eceef1; --text:#14171c; --soft:#4a515c; --hint:#8a919c;
-  --line:rgba(20,23,28,.08); --accent:#14171c;
-  --up:#14a46c; --down:#d9474d; --warn:#b5761a;
-  --up-a:rgba(20,164,108,.12); --down-a:rgba(217,71,77,.12); --warn-a:rgba(181,118,26,.12);
-  --shadow:0 1px 0 rgba(20,23,28,.04),0 8px 24px -12px rgba(20,23,28,.12);
+  --bg:#F2F3F7; --card:#FFFFFF; --fill:#EEF0F5; --thumb:#FFFFFF; --line:rgba(19,23,34,.08);
+  --text:#131722; --soft:#434651; --muted:#787B86;
+  --green:#089981; --red:#F23645; --blue:#2962FF; --amber:#F7931A;
+  --green-a:rgba(8,153,129,.12); --red-a:rgba(242,54,69,.12); --blue-a:rgba(41,98,255,.12);
+  --shadow:0 1px 2px rgba(19,23,34,.06),0 4px 16px -8px rgba(19,23,34,.12);
+  --thumb-shadow:0 1px 3px rgba(19,23,34,.12),0 3px 8px rgba(19,23,34,.06);
   color-scheme:light;
 }
-@media (prefers-color-scheme:dark){:root:not([data-scheme="light"]){
-  --bg:#0b0d10; --surface:#12161b; --raise:#1a1f26; --text:#e8eaed; --soft:#b3b9c2; --hint:#7d8590;
-  --line:rgba(232,234,237,.07); --accent:#e8eaed;
-  --up:#3ecf8e; --down:#f2676b; --warn:#e3a53f;
-  --up-a:rgba(62,207,142,.13); --down-a:rgba(242,103,107,.13); --warn-a:rgba(227,165,63,.12);
-  --shadow:0 1px 0 rgba(255,255,255,.03) inset,0 10px 30px -14px rgba(0,0,0,.6); color-scheme:dark;
-}}
-:root[data-scheme="dark"]{
-  --bg:#0b0d10; --surface:#12161b; --raise:#1a1f26; --text:#e8eaed; --soft:#b3b9c2; --hint:#7d8590;
-  --line:rgba(232,234,237,.07); --accent:#e8eaed;
-  --up:#3ecf8e; --down:#f2676b; --warn:#e3a53f;
-  --up-a:rgba(62,207,142,.13); --down-a:rgba(242,103,107,.13); --warn-a:rgba(227,165,63,.12);
-  --shadow:0 1px 0 rgba(255,255,255,.03) inset,0 10px 30px -14px rgba(0,0,0,.6); color-scheme:dark;
+:root[data-theme="dark"]{
+  --bg:#0E1117; --card:#171B26; --fill:#1E222D; --thumb:#2A2E39; --line:rgba(255,255,255,.06);
+  --text:#F0F3FA; --soft:#B2B5BE; --muted:#787B86;
+  --green:#22AB94; --red:#F7525F; --blue:#3179F5; --amber:#F7931A;
+  --green-a:rgba(34,171,148,.15); --red-a:rgba(247,82,95,.15); --blue-a:rgba(49,121,245,.16);
+  --shadow:0 0 0 1px rgba(255,255,255,.04); --thumb-shadow:0 1px 2px rgba(0,0,0,.4);
+  color-scheme:dark;
 }
-*{box-sizing:border-box}
-html,body{margin:0}
-html{scroll-behavior:smooth}
-body{background:var(--bg);color:var(--text);font:15px/1.45 Onest,system-ui,-apple-system,"Segoe UI",sans-serif;
-  -webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;min-height:100dvh}
-body::before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.035;z-index:0;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
-main{position:relative;z-index:1;max-width:460px;margin:0 auto;padding:18px 16px calc(28px + env(safe-area-inset-bottom))}
-.mono,.num{font-family:"JetBrains Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
-.hint{color:var(--hint)} .soft{color:var(--soft)}
-.up{color:var(--up)} .down{color:var(--down)}
-p{margin:0;text-wrap:pretty}
-
-/* entry */
-.in{animation:in .5s cubic-bezier(.2,.8,.2,1) backwards;animation-delay:calc(var(--i,0) * 60ms)}
-@keyframes in{from{opacity:0;transform:translateY(8px)}}
-@media (prefers-reduced-motion:reduce){.in{animation:none}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg)}
+body{color:var(--text);font:15px/1.4 -apple-system,BlinkMacSystemFont,"SF Pro Text",Inter,system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;font-feature-settings:"cv11","ss01";min-height:100dvh}
+.num{font-variant-numeric:tabular-nums}
+main{max-width:480px;margin:0 auto;padding:12px 16px calc(32px + env(safe-area-inset-bottom))}
+button{font:inherit;color:inherit}
+p{margin:0}
+.muted{color:var(--muted)} .soft{color:var(--soft)}
+.green{color:var(--green)} .red{color:var(--red)} .blue{color:var(--blue)}
 
 /* header */
-.head{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
-.ticker{font-size:12px;font-weight:600;letter-spacing:.08em;color:var(--hint)}
-.price{font-size:34px;font-weight:600;line-height:1;margin-top:6px;letter-spacing:-.03em}
-.chg{font-size:13px;font-weight:500;padding:4px 8px;border-radius:7px}
-.chg.up{background:var(--up-a)} .chg.down{background:var(--down-a)}
-.spark{display:block;width:calc(100% + 32px);margin:14px -16px 0;height:64px}
-.sparkmeta{display:flex;justify-content:space-between;font-size:11px;margin-top:4px}
+.top{display:flex;align-items:center;justify-content:space-between;padding:4px 0 2px}
+.pair{display:flex;align-items:center;gap:10px}
+.coin{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#9945FF,#14F195);display:grid;place-items:center;
+  color:#fff;font-weight:700;font-size:15px;letter-spacing:-.02em}
+.pair b{display:block;font-size:16px;font-weight:600;letter-spacing:-.01em}
+.pair small{display:block;font-size:12px;color:var(--muted)}
+.icon-btn{width:34px;height:34px;border-radius:50%;border:0;background:var(--fill);color:var(--soft);display:grid;place-items:center;cursor:pointer;transition:transform .15s,background .2s}
+.icon-btn:active{transform:scale(.92)}
+.price-row{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;margin-top:14px}
+.price{font-size:40px;font-weight:700;letter-spacing:-.035em;line-height:1}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;padding:5px 10px;border-radius:999px}
+.pill.green{background:var(--green-a)} .pill.red{background:var(--red-a)} .pill.blue{background:var(--blue-a)}
+.fresh{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);margin-top:8px}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 0 3px var(--green-a)}
+.dot.stale{background:var(--amber);box-shadow:0 0 0 3px rgba(247,147,26,.15)}
 
-/* horizon switch */
-.hz{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;margin:22px 0 0;border-bottom:1px solid var(--line)}
-.hz button{position:relative;border:0;background:none;font:inherit;font-size:14px;font-weight:600;color:var(--hint);
-  padding:10px 0 12px;cursor:pointer;transition:color .2s}
-.hz button:hover{color:var(--soft)}
-.hz button:active{transform:translateY(1px)}
-.hz button[aria-selected="true"]{color:var(--text)}
-.hz button[aria-selected="true"]::after{content:"";position:absolute;left:22%;right:22%;bottom:-1px;height:2px;border-radius:2px;background:var(--accent)}
-.hz button.off{opacity:.45}
-.hz i{display:inline-block;width:6px;height:6px;border-radius:2px;margin-left:6px;vertical-align:1px}
-.hz button:focus-visible,.btn:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+/* iOS segmented control */
+.seg{position:relative;display:grid;grid-auto-flow:column;grid-auto-columns:1fr;background:var(--fill);border-radius:10px;padding:2px;margin-top:18px}
+.seg .thumb{position:absolute;top:2px;bottom:2px;left:2px;border-radius:8px;background:var(--thumb);box-shadow:var(--thumb-shadow);
+  transition:transform .32s cubic-bezier(.3,.9,.3,1)}
+.seg button{position:relative;z-index:1;border:0;background:none;padding:7px 0;font-size:13px;font-weight:600;color:var(--soft);cursor:pointer}
+.seg button[aria-selected="true"]{color:var(--text)}
+.seg i{display:inline-block;width:5px;height:5px;border-radius:50%;margin-left:5px;vertical-align:2px}
 
-/* verdict */
-.verdict{margin-top:22px}
-.eyebrow{font-size:13px;color:var(--hint)}
-.word{font-size:56px;font-weight:800;line-height:.95;letter-spacing:-.045em;margin-top:6px;display:flex;align-items:center;gap:12px}
-.word svg{width:40px;height:40px;flex:none}
-.word.none{color:var(--soft);font-size:44px}
-.lede{margin-top:10px;color:var(--soft);max-width:36ch}
+/* cards */
+.card{background:var(--card);border-radius:16px;box-shadow:var(--shadow);margin-top:12px}
+.pad{padding:16px}
+.section-title{font-size:13px;font-weight:600;color:var(--muted);margin:24px 4px 0;letter-spacing:.01em}
+.hero{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center}
+.status{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:4px 9px;border-radius:999px}
+.status::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.status.storm{color:var(--red);background:var(--red-a)} .status.calm{color:var(--green);background:var(--green-a)}
+.status.normal{color:var(--blue);background:var(--blue-a)} .status.off{color:var(--muted);background:var(--fill)}
+.hero h1{font-size:22px;font-weight:700;letter-spacing:-.025em;line-height:1.15;margin:10px 0 6px}
+.hero p{font-size:14px;color:var(--soft);line-height:1.45}
+.ring{position:relative;width:88px;height:88px}
+.ring svg{transform:rotate(-90deg)}
+.ring .v{position:absolute;inset:0;display:grid;place-items:center;text-align:center}
+.ring b{font-size:21px;font-weight:700;letter-spacing:-.03em;line-height:1}
+.ring small{display:block;font-size:10px;color:var(--muted);margin-top:3px}
+.ring circle{transition:stroke-dashoffset .8s cubic-bezier(.3,.9,.3,1)}
 
-/* edge meter */
-.meter{margin-top:22px;padding:16px 16px 14px;border-radius:16px;background:var(--surface);box-shadow:var(--shadow)}
-.meter .row{display:flex;justify-content:space-between;align-items:baseline}
-.meter .pv{font-size:22px;font-weight:600}
-.track{position:relative;height:36px;margin-top:26px}
-.track .rail{position:absolute;left:0;right:0;top:16px;height:4px;border-radius:2px;
-  background:var(--raise)}
-.track .quiet{position:absolute;top:10px;height:16px;border-radius:4px;
-  background:repeating-linear-gradient(135deg,var(--line) 0 4px,transparent 4px 8px);border:1px dashed var(--line)}
-.track .mid{position:absolute;left:50%;top:8px;width:1px;height:20px;background:var(--hint);opacity:.5}
-.track .dot{position:absolute;top:9px;width:18px;height:18px;margin-left:-9px;border-radius:50%;background:var(--surface);
-  border:4px solid var(--soft);transition:left .6s cubic-bezier(.2,.8,.2,1)}
-.track .dot.up{border-color:var(--up)} .track .dot.down{border-color:var(--down)}
-.track .band{position:absolute;top:13px;height:10px;border-radius:5px;background:var(--soft);opacity:.35}
-.track .band.up{background:var(--up)} .track .band.down{background:var(--down)}
-.track .mark{position:absolute;top:4px;width:2px;height:28px;margin-left:-1px;background:var(--hint);opacity:.7}
-.track .mark span{position:absolute;top:-16px;left:50%;transform:translateX(-50%);font-size:10px;color:var(--hint);white-space:nowrap}
-.track .mark.storm{background:var(--down);opacity:.8} .track .mark.storm span{color:var(--down)}
-.track .zone{position:absolute;right:0;top:16px;height:4px;border-radius:2px;background:var(--down-a)}
-.track .dot.soft{border-color:var(--soft)}
-.strip .inside{background:var(--up)} .strip .above{background:var(--down)} .strip .below{background:var(--hint);opacity:.35}
-.scale{display:flex;justify-content:space-between;font-size:11px;color:var(--hint)}
-.facts{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;margin-top:14px;background:var(--line);border-radius:12px;overflow:hidden}
-.facts div{background:var(--surface);padding:10px 10px 9px}
-.facts small{display:block;font-size:11px;color:var(--hint)}
-.facts b{display:block;font-size:14px;font-weight:600;margin-top:2px}
+/* chart */
+.chart-head{display:flex;justify-content:space-between;align-items:baseline;padding:14px 16px 0}
+.chart-head b{font-size:15px;font-weight:600}
+#chart{height:250px;margin:14px 4px 0}
+.legend{display:flex;gap:14px;flex-wrap:wrap;padding:8px 16px 14px;font-size:11px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{display:inline-block;width:14px;height:0;border-top:2px dashed currentColor}
+.legend i.solid{border-top-style:solid}
 
-/* sections */
-section{margin-top:28px}
-h2{font-size:17px;font-weight:700;letter-spacing:-.02em;margin:0 0 4px}
-.sub{font-size:13px;color:var(--hint);margin-bottom:12px}
+/* stat tiles */
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.tile{background:var(--card);border-radius:14px;box-shadow:var(--shadow);padding:12px 14px}
+.tile small{display:block;font-size:12px;color:var(--muted)}
+.tile b{display:block;font-size:19px;font-weight:600;letter-spacing:-.02em;margin-top:4px}
+.tile em{font-style:normal;font-size:12px;color:var(--muted)}
 
-/* trust */
-.trust{border-radius:16px;padding:14px 16px;background:var(--surface);box-shadow:var(--shadow)}
-.trust .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px 12px}
-.trust small{display:block;font-size:11px;color:var(--hint)}
-.trust b{font-size:20px;font-weight:600}
-.trust .verdictline{margin-top:14px;padding-top:12px;border-top:1px solid var(--line);font-size:13px;color:var(--soft)}
-.tag{display:inline-block;font-size:11px;font-weight:600;letter-spacing:.04em;padding:3px 7px;border-radius:5px;vertical-align:2px}
-.tag.ok{background:var(--up-a);color:var(--up)} .tag.no{background:var(--raise);color:var(--hint)} .tag.warn{background:var(--warn-a);color:var(--warn)}
+/* grouped list (Apple settings style) */
+.list{background:var(--card);border-radius:16px;box-shadow:var(--shadow);margin-top:8px;overflow:hidden}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;position:relative;font-size:15px}
+.row+.row::before{content:"";position:absolute;top:0;left:16px;right:0;border-top:1px solid var(--line)}
+.row .k{color:var(--text)} .row .k small{display:block;font-size:12px;color:var(--muted);margin-top:1px}
+.row .val{font-weight:600;text-align:right;white-space:nowrap}
+.note{font-size:12px;color:var(--muted);margin:8px 16px 0;line-height:1.45}
 
 /* drivers */
-.drv{display:grid;grid-template-columns:minmax(0,1fr) 92px 52px;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
-.drv:first-of-type{border-top:0}
+.drv{display:grid;grid-template-columns:minmax(0,1fr) 76px 46px;align-items:center;gap:10px}
 .drv .n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.drv .n em{font-style:normal;font-size:11px;color:var(--hint);margin-right:6px}
-.drv .b{position:relative;height:6px}
-.drv .b::before{content:"";position:absolute;left:50%;top:-4px;bottom:-4px;width:1px;background:var(--line)}
+.drv .b{position:relative;height:6px;background:var(--fill);border-radius:3px}
+.drv .b::after{content:"";position:absolute;left:50%;top:-3px;bottom:-3px;width:1px;background:var(--muted);opacity:.4}
 .drv .b i{position:absolute;top:0;bottom:0;border-radius:3px}
-.drv .v{text-align:right;font-size:12px}
+.drv .v{text-align:right;font-size:13px;font-weight:600}
 
-/* record */
+/* track record */
 .strip{display:grid;grid-template-columns:repeat(15,1fr);gap:4px}
-.strip span{aspect-ratio:1;border-radius:3px;background:var(--raise)}
-.strip .hit{background:var(--up)} .strip .miss{background:var(--down)} .strip .flat{background:var(--hint);opacity:.35}
-.strip .pend{background:none;border:1px dashed var(--hint);opacity:.6}
-.counts{display:flex;gap:16px;margin-top:10px;font-size:12px}
-details{margin-top:14px;border-top:1px solid var(--line)}
-summary{list-style:none;cursor:pointer;padding:12px 0;font-size:14px;font-weight:600;display:flex;justify-content:space-between}
-summary::-webkit-details-marker{display:none}
-summary::after{content:"+";color:var(--hint);font-weight:400}
-details[open] summary::after{content:"−"}
-.log{list-style:none;margin:0;padding:0}
+.strip span{aspect-ratio:1;border-radius:4px;background:var(--fill)}
+.strip .inside{background:var(--green)} .strip .above{background:var(--red)} .strip .below{background:var(--muted);opacity:.45}
+.strip .pend{background:none;box-shadow:inset 0 0 0 1px var(--muted);opacity:.6}
+.counts{display:flex;gap:14px;flex-wrap:wrap;margin-top:12px;font-size:12px;font-weight:500}
+details summary{list-style:none;cursor:pointer;font-weight:600;font-size:15px;display:flex;justify-content:space-between;align-items:center}
+details summary::-webkit-details-marker{display:none}
+details summary::after{content:"›";font-size:20px;color:var(--muted);transition:transform .2s}
+details[open] summary::after{transform:rotate(90deg)}
+.log{list-style:none;margin:10px 0 0;padding:0}
 .log li{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:12px;align-items:center;padding:9px 0;border-top:1px solid var(--line);font-size:13px}
-.log small{display:block;color:var(--hint);font-size:11px}
-.empty{padding:18px 16px;border-radius:14px;background:var(--surface);color:var(--soft);font-size:14px;box-shadow:var(--shadow)}
+.log small{display:block;color:var(--muted);font-size:11px}
+.empty{font-size:14px;color:var(--soft);line-height:1.45}
 
-/* banner, footer, states */
-.banner{display:flex;gap:10px;margin-top:18px;padding:12px 14px;border-radius:12px;background:var(--warn-a);font-size:14px}
-.banner svg{flex:none;color:var(--warn);margin-top:2px}
-footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--line);font-size:12px;color:var(--hint)}
-footer p+p{margin-top:6px}
-.btn{margin-top:18px;border:0;background:var(--text);color:var(--bg);font:inherit;font-weight:600;padding:11px 20px;border-radius:10px;cursor:pointer;transition:transform .15s,opacity .2s}
-.btn:hover{opacity:.9} .btn:active{transform:scale(.98)}
-.sk{border-radius:14px;background:var(--surface);animation:pulse 1.4s ease-in-out infinite}
-@keyframes pulse{50%{opacity:.5}}
-@media (prefers-reduced-motion:reduce){.sk{animation:none}}
-.state{padding:56px 4px 0}
-.state h1{font-size:28px;letter-spacing:-.03em;margin:14px 0 8px}
+/* footer and info sheet */
+.foot{text-align:center;font-size:12px;color:var(--muted);margin-top:28px;line-height:1.5}
+.link{border:0;background:none;color:var(--blue);font-weight:600;font-size:15px;cursor:pointer;padding:12px}
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.35);opacity:0;pointer-events:none;transition:opacity .25s;z-index:10}
+.sheet{position:fixed;left:0;right:0;bottom:0;max-height:88dvh;overflow:auto;background:var(--card);border-radius:18px 18px 0 0;
+  padding:8px 20px calc(24px + env(safe-area-inset-bottom));transform:translateY(102%);transition:transform .35s cubic-bezier(.3,.9,.3,1);z-index:11;max-width:480px;margin:0 auto}
+.open .scrim{opacity:1;pointer-events:auto} .open .sheet{transform:none}
+.grab{width:36px;height:5px;border-radius:3px;background:var(--fill);margin:0 auto 12px}
+.sheet h2{font-size:22px;font-weight:700;letter-spacing:-.025em;margin:4px 0 12px}
+.sheet h3{font-size:15px;font-weight:600;margin:18px 0 4px}
+.sheet p{font-size:14px;color:var(--soft);line-height:1.5}
+.sheet .tag{display:inline-block;font-size:12px;font-weight:600;padding:2px 8px;border-radius:999px;margin-right:4px}
+
+/* states */
+.sk{background:var(--card);border-radius:16px;animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.55}}
+@media (prefers-reduced-motion:reduce){.sk{animation:none}.seg .thumb,.sheet,.ring circle{transition:none}}
+.err{text-align:center;padding:64px 12px}
+.err h1{font-size:22px;letter-spacing:-.02em;margin:0 0 8px}
+.btn{margin-top:18px;border:0;background:var(--blue);color:#fff;font-weight:600;padding:12px 22px;border-radius:12px;cursor:pointer}
+:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
 </style>
 </head>
 <body>
 <main id="app" aria-live="polite"></main>
+<div class="scrim" id="scrim"></div>
+<aside class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title">
+  <div class="grab"></div>
+  <h2 id="sheet-title">Как это работает</h2>
+  <p>Бот не угадывает, куда пойдёт цена: честная проверка показала, что направление SOL угадывается почти как монетка. Зато он хорошо предсказывает, <b>насколько сильным будет движение</b>.</p>
+  <h3>Размах</h3>
+  <p>Разница между самой высокой и самой низкой ценой за выбранный срок, в процентах. Размах 2.4% за 4 часа при цене $71 значит, что за эти 4 часа цена пройдёт диапазон примерно в $1.7 — вверх, вниз или туда и обратно.</p>
+  <h3>Буря, как обычно, тихо</h3>
+  <p><span class="tag" style="color:var(--red);background:var(--red-a)">Буря</span> шанс, что размах окажется среди 20% самых сильных за последние 90 дней, — 40% или больше.</p>
+  <p style="margin-top:6px"><span class="tag" style="color:var(--blue);background:var(--blue-a)">Как обычно</span> ожидаемый размах близок к типичному за последние 30 дней.</p>
+  <p style="margin-top:6px"><span class="tag" style="color:var(--green);background:var(--green-a)">Тихо</span> ожидаемый размах меньше 0.8 от типичного.</p>
+  <h3>Коридор 80%</h3>
+  <p>В восьми случаях из десяти реальный размах укладывается в этот диапазон. На графике он нарисован конусом вправо от текущей цены, как если бы цена качнулась поровну в обе стороны.</p>
+  <h3>Шанс бури</h3>
+  <p>Кольцо справа сверху. 20% — обычный фон (так устроено определение бури), 40% и выше — бот предупреждает.</p>
+  <h3>Насколько верить</h3>
+  <p>Каждый прогноз через свой срок сверяется с тем, что было на самом деле. Квадраты внизу — эти проверки: зелёный — размах попал в коридор, красный — движение было сильнее, серый — слабее. На 2025–2026 годах, которых модель не видела, коридор накрывал реальность в 78–82% случаев.</p>
+  <h3>Из чего считается</h3>
+  <p>Каждый час: волатильность SOL за час, сутки, неделю и месяц, время суток и волатильность BTC. Модель заново обучается на всей истории с 2021 года.</p>
+  <h3>Чем это полезно</h3>
+  <p>Перед бурей — шире стопы или меньше плечо. В тишине — узкие стопы реже выбивает. Куда пойдёт цена, бот не говорит.</p>
+  <p style="margin-top:18px" class="muted">Не финансовый совет.</p>
+  <div style="text-align:center"><button class="link" id="close-sheet">Понятно</button></div>
+</aside>
 <script>
 const tg = window.Telegram && Telegram.WebApp;
 const q = new URLSearchParams(location.search);
 const SRC = q.get('src') || 'data.json', HIST = q.get('hist') || 'history.json';
 const app = document.getElementById('app');
-const HZ = {'1h':['1ч','1 час'],'4h':['4ч','4 часа'],'12h':['12ч','12 часов'],'1d':['1д','1 день'],'24h':['1д','1 день']};
-let D = null, H = null, sel = null, timer = null;
+const HZ = {'1h':['1ч','1 час','часа'],'4h':['4ч','4 часа','4 часов'],'12h':['12ч','12 часов','12 часов'],'1d':['1д','1 день','суток'],'24h':['1д','1 день','суток']};
+const LBL = {storm:['Буря','Ожидается сильное движение'], normal:['Как обычно','Рынок в обычном ритме'], calm:['Тихо','Ожидается затишье'], off:['Нет сигнала','Модель здесь не работает']};
+let D = null, H = null, sel = null, timer = null, chart = null;
 
+/* theme: Telegram's light/dark, else the system's; our own colours either way */
+const inTg = !!(tg && tg.initData);                    // the script exists in any browser; only trust it inside Telegram
+const dark = () => inTg ? tg.colorScheme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
 function theme(){
-  if (!tg || !tg.themeParams || !tg.themeParams.bg_color) return;
-  const p = tg.themeParams, s = document.documentElement.style;
-  document.documentElement.dataset.scheme = tg.colorScheme;
-  const map = {'--bg': p.bg_color, '--surface': p.secondary_bg_color || p.section_bg_color, '--text': p.text_color,
-    '--hint': p.hint_color || p.subtitle_text_color, '--soft': p.subtitle_text_color || p.hint_color, '--accent': p.text_color};
-  for (const k in map) if (map[k]) s.setProperty(k, map[k]);
-  if (tg.setHeaderColor && tg.isVersionAtLeast && tg.isVersionAtLeast('6.1')) tg.setHeaderColor('bg_color');
+  document.documentElement.dataset.theme = dark() ? 'dark' : 'light';
+  const bg = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();
+  if (inTg && tg.isVersionAtLeast('6.1')) { tg.setHeaderColor(bg); tg.setBackgroundColor(bg); }
 }
-if (tg) { tg.ready(); tg.expand(); theme(); tg.onEvent && tg.onEvent('themeChanged', theme); }
+theme();
+if (inTg) { tg.ready(); tg.expand(); tg.onEvent('themeChanged', () => { theme(); D && render(); }); }
+else matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { theme(); D && render(); });
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const ok = x => typeof x === 'number' && isFinite(x);
 const pct = (x, d = 0) => ok(x) ? (x * 100).toFixed(d) + '%' : '—';
-const spct = (x, d = 1) => ok(x) ? (x > 0 ? '+' : x < 0 ? '−' : '') + Math.abs(x * 100).toFixed(d) + '%' : '—';
-const usd = x => ok(x) ? '$' + x.toLocaleString('ru-RU', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '—';
+const p2 = x => ok(x) ? (x * 100).toFixed(x < .1 ? 2 : 1) + '%' : '—';
+const spct = (x, d = 2) => ok(x) ? (x > 0 ? '+' : x < 0 ? '−' : '') + Math.abs(x * 100).toFixed(d) + '%' : '—';
+const usd = x => ok(x) ? '$' + x.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '—';
 const dt = s => { const d = new Date(s); return isNaN(d) ? null : d; };
 const fTime = d => d ? d.toLocaleTimeString('ru-RU', {hour: '2-digit', minute: '2-digit'}) : '—';
 const fDay = d => d ? d.toLocaleDateString('ru-RU', {day: 'numeric', month: 'short'}).replace('.', '') : '';
-const hzShort = h => (HZ[h] || [h])[0], hzLong = h => (HZ[h] || [h, h])[1];
-const callCls = c => c === 'UP' ? 'up' : c === 'DOWN' ? 'down' : 'none';
-const ICON = {
-  up: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M9 7h8v8"/></svg>',
-  down: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7l10 10M17 9v8H9"/></svg>',
-  warn: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 9v4M12 17h.01M10.3 3.9L2.4 18a2 2 0 001.7 3h15.8a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/></svg>'
-};
+const hz = (h, i) => (HZ[h] || [h, h, h])[i];
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 
 function ago(d){
   if (!d) return '—';
@@ -211,46 +226,65 @@ function left(d){
   let s = Math.floor((d - Date.now()) / 1000);
   if (s <= 0) return 'проверяем';
   const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60); s %= 60;
-  return h ? `${h}:${String(m).padStart(2, '0')} ч` : `${m}:${String(s).padStart(2, '0')}`;
+  return h ? `${h} ч ${String(m).padStart(2, '0')} мин` : `${m}:${String(s).padStart(2, '0')}`;
 }
 
-function spark(arr){
-  const v = (arr || []).filter(ok);
-  if (v.length < 2) return '';
-  const W = 400, Hh = 64, min = Math.min(...v), max = Math.max(...v), r = max - min || 1;
-  const pts = v.map((y, i) => [i / (v.length - 1) * W, 6 + (1 - (y - min) / r) * (Hh - 12)]);
-  const line = pts.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join('');
-  const c = v[v.length - 1] >= v[0] ? 'var(--up)' : 'var(--down)', [ex, ey] = pts[pts.length - 1];
-  return `<svg class="spark" viewBox="0 0 ${W} ${Hh}" preserveAspectRatio="none" role="img" aria-label="Цена SOL за 7 дней">
-    <defs><linearGradient id="sg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${c}" stop-opacity=".16"/><stop offset="1" stop-color="${c}" stop-opacity="0"/></linearGradient></defs>
-    <path d="${line}L${W} ${Hh}L0 ${Hh}Z" fill="url(#sg)"/>
-    <path d="${line}" fill="none" stroke="${c}" stroke-width="1.6" vector-effect="non-scaling-stroke"/>
-    <circle cx="${ex - 3}" cy="${ey}" r="3" fill="${c}"/></svg>
-    <div class="sparkmeta hint num"><span>7д ${spct(v[v.length - 1] / v[0] - 1)}</span><span>${usd(min)} · ${usd(max)}</span></div>`;
+function ring(p, cls){
+  const r = 38, C = 2 * Math.PI * r, v = ok(p) ? Math.min(1, Math.max(0, p)) : 0;
+  const col = {storm: 'var(--red)', calm: 'var(--green)', normal: 'var(--blue)'}[cls] || 'var(--muted)';
+  return `<div class="ring" role="img" aria-label="Шанс бури ${pct(p)}"><svg width="88" height="88" viewBox="0 0 88 88">
+    <circle cx="44" cy="44" r="${r}" fill="none" stroke="var(--fill)" stroke-width="8"/>
+    <circle cx="44" cy="44" r="${r}" fill="none" stroke="${col}" stroke-width="8" stroke-linecap="round"
+      stroke-dasharray="${C}" stroke-dashoffset="${C * (1 - v)}"/></svg>
+    <div class="v"><div><b class="num">${pct(p)}</b><small>шанс бури</small></div></div></div>`;
 }
 
-const LBL = {calm: ['Тихо', 'up'], normal: ['Как обычно', 'soft'], storm: ['Буря', 'down'], off: ['Не знаем', 'soft']};
-const p1 = x => ok(x) ? (x * 100).toFixed(x < 0.1 ? 2 : 1) + '%' : '—';
-const times = x => ok(x) ? '×' + x.toFixed(2) : '—';
-
-/* forecast range on a 0…max scale: typical mark, storm line, 80% band, median dot */
-function corridor(x){
-  const max = Math.max(x.hi || 0, x.storm_range || 0, x.typical || 0) * 1.25 || 1, at = v => Math.min(100, Math.max(0, v / max * 100));
-  const lab = LBL[x.label] || LBL.normal;
-  return `<div class="track" aria-hidden="true"><div class="rail"></div>
-      ${ok(x.storm_range) ? `<div class="zone" style="left:${at(x.storm_range)}%"></div><div class="mark storm" style="left:${at(x.storm_range)}%"><span>буря</span></div>` : ''}
-      ${ok(x.typical) ? `<div class="mark" style="left:${at(x.typical)}%"><span>обычно</span></div>` : ''}
-      ${ok(x.lo) && ok(x.hi) ? `<div class="band ${lab[1]}" style="left:${at(x.lo)}%;width:${at(x.hi) - at(x.lo)}%"></div>` : ''}
-      ${ok(x.range) ? `<div class="dot ${lab[1]}" style="left:${at(x.range)}%"></div>` : ''}</div>
-    <div class="scale num"><span>0%</span><span>80%: ${p1(x.lo)} – ${p1(x.hi)}</span><span>${p1(max)}</span></div>`;
+/* TradingView chart: hourly candles + the forecast corridor as a cone to the right */
+function drawChart(x){
+  const el = document.getElementById('chart');
+  if (!el || !window.LightweightCharts) { if (el) el.innerHTML = '<p class="muted" style="padding:16px">График не загрузился.</p>'; return; }
+  if (chart) { chart.remove(); chart = null; }
+  const muted = css('--muted'), line = css('--line'), green = css('--green'), red = css('--red');
+  const accent = {storm: red, calm: green, normal: css('--blue')}[x.label] || muted;
+  chart = LightweightCharts.createChart(el, {
+    autoSize: true,
+    layout: {background: {type: 'solid', color: 'transparent'}, textColor: muted, fontSize: 11,
+      fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, system-ui, sans-serif'},
+    grid: {vertLines: {visible: false}, horzLines: {color: line}},
+    rightPriceScale: {borderVisible: false, scaleMargins: {top: .12, bottom: .08}},
+    timeScale: {borderVisible: false, timeVisible: true, secondsVisible: false, rightOffset: 2},
+    crosshair: {mode: 0, vertLine: {color: muted, labelBackgroundColor: css('--thumb')}, horzLine: {color: muted, labelBackgroundColor: css('--thumb')}},
+    handleScroll: false, handleScale: false,
+    localization: {priceFormatter: v => '$' + v.toFixed(2)},
+  });
+  const hours = parseInt(sel) || 4, keep = Math.min(96, Math.max(16, hours * 4));   // the cone gets ~20% of the width
+  let bars = (D.candles || []).slice(-keep).map(c => ({time: c[0], open: c[1], high: c[2], low: c[3], close: c[4]}));
+  if (!bars.length && D.spark) {                       // older data.json without candles: a line instead
+    const now = Math.floor(Date.now() / 3600000) * 3600;
+    const s = chart.addAreaSeries({lineColor: accent, topColor: 'transparent', bottomColor: 'transparent', lineWidth: 2});
+    s.setData(D.spark.map((v, i) => ({time: now - (D.spark.length - 1 - i) * 3600, value: v})));
+    bars = null;
+  } else {
+    const cs = chart.addCandlestickSeries({upColor: green, downColor: red, borderVisible: false, wickUpColor: green, wickDownColor: red,
+      priceLineColor: muted, priceLineStyle: 2});
+    cs.setData(bars);
+  }
+  const last = bars && bars.length ? bars[bars.length - 1] : null;
+  if (last && ok(x.range) && ok(x.lo) && ok(x.hi)) {
+    const h = parseInt(sel) || 4, t0 = last.time + 3600, t1 = t0 + h * 3600, p = last.close;
+    const add = (k, style, width) => { const s = chart.addLineSeries({color: accent, lineWidth: width, lineStyle: style, priceLineVisible: false,
+      lastValueVisible: false, crosshairMarkerVisible: false}); s.setData([{time: t0, value: p}, {time: t1, value: p * (1 + k / 2)}]); };
+    add(x.hi, 2, 1); add(-x.hi, 2, 1); add(x.range, 0, 2); add(-x.range, 0, 2);
+  }
+  chart.timeScale().fitContent();
 }
 
 function drivers(list){
-  if (!list || !list.length) return '<p class="hint">Заметных факторов нет.</p>';
+  if (!list || !list.length) return '<p class="muted">Заметных факторов нет.</p>';
   const max = Math.max(.05, ...list.map(r => ok(r.push) ? Math.abs(r.push) : 0));
-  return list.map(r => {
-    const v = ok(r.push) ? r.push : 0, w = Math.abs(v) / max * 50, c = v >= 0 ? 'down' : 'up';
-    return `<div class="drv"><span class="n" title="${esc(r.name)}"><em class="mono">${esc(r.scheme || '·')}</em>${esc(r.name)}</span>
+  return list.map((r, i) => {
+    const v = ok(r.push) ? r.push : 0, w = Math.abs(v) / max * 50, c = v >= 0 ? 'red' : 'green';
+    return `<div class="row drv"><span class="n" title="${esc(r.name)}">${esc(r.name)}</span>
       <span class="b"><i style="background:var(--${c});${v >= 0 ? 'left:50%' : 'right:50%'};width:${w}%"></i></span>
       <span class="v num ${c}">${(v >= 0 ? '+' : '−') + Math.abs(v * 100).toFixed(0)}%</span></div>`;
   }).join('');
@@ -258,103 +292,131 @@ function drivers(list){
 
 function trust(x){
   const B = x.backtest || {}, L = x.live || {};
-  if (x.enabled === false) return `<div class="trust"><span class="tag no">ОТКЛЮЧЁН</span>
-    <p class="soft" style="margin-top:10px">На этом горизонте модель не обогнала простое «как обычно», поэтому здесь она молчит.</p></div>`;
-  return `<div class="trust"><span class="tag ok">РАБОТАЕТ НА ИСТОРИИ</span>
-    <div class="grid" style="margin-top:12px">
-      <div><small>Лучше, чем «как обычно»</small><b class="num">${ok(B.r2_clim) ? '+' + Math.round(B.r2_clim * 100) + '%' : '—'}</b> <span class="hint" style="font-size:12px">R²</span></div>
-      <div><small>Попадание в коридор 80%</small><b class="num">${pct(B.cover)}</b> <span class="hint" style="font-size:12px">бэктест</span></div>
-      <div><small>«Буря» против «тихо»</small><b class="num">${times(B.lift)}</b> <span class="hint" style="font-size:12px">размах</span></div>
-      <div><small>Коридор, live 30 дн</small><b class="num">${pct(L.cover30)}</b> <span class="hint num" style="font-size:12px">n ${ok(L.n30) ? L.n30 : 0}</span></div>
-    </div>
-    <p class="verdictline">Размах движения предсказуем, направление — нет. Там, где модель ждала самые сильные движения, они в среднем были в ${ok(B.lift) ? B.lift.toFixed(1) : '—'} раза больше, чем там, где она ждала тишину. Проверено на 2025–2026, которые модель не видела.</p></div>`;
+  if (x.enabled === false) return `<div class="list"><div class="row"><span class="k">На этом сроке модель не лучше простого «как обычно»</span></div></div>`;
+  const row = (k, sub, v, cls = '') => `<div class="row"><span class="k">${k}${sub ? `<small>${sub}</small>` : ''}</span><span class="val num ${cls}">${v}</span></div>`;
+  return `<div class="list">
+    ${row('Точнее, чем «как обычно»', 'ошибка прогноза меньше на', ok(B.r2_clim) ? Math.round(B.r2_clim * 100) + '%' : '—', 'green')}
+    ${row('Попадание в коридор 80%', 'на 2025–2026, которые модель не видела', pct(B.cover))}
+    ${row('Буря против тишины', 'во сколько раз размах больше', ok(B.lift) ? '×' + B.lift.toFixed(1) : '—')}
+    ${row('Попадание вживую', 'за 30 дней' + (ok(L.n30) && L.n30 ? `, ${L.n30} проверок` : ', проверки копятся'), pct(L.cover30))}
+  </div>`;
 }
 
 function record(h){
-  if (!H) return '<div class="empty">История сейчас недоступна.</div>';
+  if (!H) return '<p class="empty">История сейчас недоступна.</p>';
   const rows = H.filter(e => e && e.h === h).slice(-30);
-  if (!rows.length) return '<div class="empty">Прогнозов на этом горизонте ещё не было. Каждый проверится через его горизонт и появится здесь.</div>';
+  if (!rows.length) return '<p class="empty">Прогнозов на этом сроке ещё не было.</p>';
   const cnt = {inside: 0, above: 0, below: 0, pend: 0};
   rows.forEach(e => cnt[e.result in cnt ? e.result : 'pend']++);
   const cells = rows.map(e => `<span class="${e.result || 'pend'}" title="${esc(fDay(dt(e.t)) + ' ' + fTime(dt(e.t)))}"></span>`).join('')
     + '<span style="background:none"></span>'.repeat(Math.max(0, 30 - rows.length));
-  const R = {inside: ['в коридоре', 'up'], above: ['сильнее', 'down'], below: ['слабее', 'hint']};
+  const R = {inside: ['в коридоре', 'green'], above: ['сильнее', 'red'], below: ['слабее', 'muted']};
   const li = rows.slice().reverse().map(e => {
-    const d = dt(e.t), [rt, rc] = R[e.result] || ['ждём', 'hint'];
-    return `<li><span><span class="num">${fDay(d)} ${fTime(d)}</span><small class="num">${(LBL[e.label] || LBL.normal)[0]} · ${p1(e.lo)}–${p1(e.hi)}</small></span>
-      <span class="num">${ok(e.range_act) ? p1(e.range_act) : '…'}</span><span class="${rc}">${rt}</span></li>`;
+    const d = dt(e.t), [rt, rc] = R[e.result] || ['ждём', 'muted'];
+    return `<li><span><span class="num">${fDay(d)}, ${fTime(d)}</span><small class="num">${(LBL[e.label] || LBL.normal)[0]} · коридор ${p2(e.lo)}–${p2(e.hi)}</small></span>
+      <span class="num">${ok(e.range_act) ? p2(e.range_act) : '…'}</span><span class="${rc}">${rt}</span></li>`;
   }).join('');
-  return `<div class="strip" role="img" aria-label="Последние ${rows.length} прогнозов">${cells}</div>
-    <div class="counts num"><span class="up">${cnt.inside} в коридоре</span><span class="down">${cnt.above} сильнее</span><span class="hint">${cnt.below} слабее</span><span class="hint">${cnt.pend} ждём</span></div>
-    <details><summary>Все прогнозы</summary><ul class="log">${li}</ul></details>`;
+  return `<div class="strip" role="img" aria-label="Последние ${rows.length} проверок">${cells}</div>
+    <div class="counts num"><span class="green">${cnt.inside} в коридоре</span><span class="red">${cnt.above} сильнее</span><span class="muted">${cnt.below} слабее</span><span class="muted">${cnt.pend} ждут</span></div>
+    <details style="margin-top:14px"><summary>Все прогнозы</summary><ul class="log">${li}</ul></details>`;
 }
 
 function render(){
   const keys = Object.keys(D.horizons || {});
-  if (!keys.length) return fail('В данных нет ни одного горизонта.');
+  if (!keys.length) return fail('В данных нет ни одного срока.');
   if (!sel || !D.horizons[sel]) sel = D.horizons[D.main] ? D.main : keys[0];
-  const x = D.horizons[sel], up = dt(D.updated), chk = dt(x.checkAt), [word, cls] = LBL[x.label] || LBL.normal;
-  const stale = up && Date.now() - up > 3 * 3600e3;
-  const ev = typeof D.event === 'string' ? D.event : '';
+  const x = D.horizons[sel], cls = x.label in LBL ? x.label : 'normal', [word, title] = LBL[cls];
+  const up = dt(D.updated), chk = dt(x.checkAt), stale = up && Date.now() - up > 2 * 3600e3;
+  const ch = D.change24h, idx = keys.indexOf(sel);
   const half = ok(x.range) && ok(x.price) ? x.range / 2 * x.price : null;
-  const lede = x.label === 'off' ? 'На этом горизонте модель не лучше простого «как обычно».'
-    : `Ожидаемый размах за ${esc(hzLong(sel))} — около <b class="num">${p1(x.range)}</b>, ${x.label === 'storm' ? 'заметно больше обычного' : x.label === 'calm' ? 'меньше обычного' : 'примерно как обычно'} (${p1(x.typical)}). Куда пойдёт цена, модель не знает.`;
-  let i = 0; const n = () => `style="--i:${i++}"`;
+  const lede = cls === 'off' ? 'На этом сроке проверка на истории не нашла закономерности.'
+    : `Размах за ${esc(hz(sel, 1))} — около <b class="num">${p2(x.range)}</b>, обычно ${p2(x.typical)}${ok(x.ratio) ? ` (×${x.ratio.toFixed(1)})` : ''}. Куда пойдёт цена, неизвестно.`;
 
   app.innerHTML = `
-  <header class="in" ${n()}>
-    <div class="head"><div><div class="ticker">SOL / USD</div><div class="price num">${usd(D.price)}</div></div>
-      <span class="chg num ${ok(D.change24h) ? (D.change24h >= 0 ? 'up' : 'down') : 'hint'}">${spct(D.change24h)} 24ч</span></div>
-    ${spark(D.spark)}
-  </header>
-  <nav class="hz in" ${n()} role="tablist" aria-label="Горизонт прогноза">${keys.map(k => { const h = D.horizons[k], c = (LBL[h.label] || LBL.normal)[1];
-    return `<button role="tab" data-h="${esc(k)}" aria-selected="${k === sel}" class="${h.enabled === false ? 'off' : ''}">${esc(hzShort(k))}${c === 'up' || c === 'down' ? `<i style="background:var(--${c})"></i>` : ''}</button>`; }).join('')}</nav>
-  ${ev ? `<div class="banner in" ${n()} role="status">${ICON.warn}<p><b>Внимание.</b> ${esc(ev)}</p></div>` : ''}
-  <div class="verdict in" ${n()}>
-    <div class="eyebrow">Движение SOL в ближайшие ${esc(hzLong(sel))}</div>
-    <div class="word ${cls}">${word}</div>
-    <p class="lede">${lede}</p>
-  </div>
-  <div class="meter in" ${n()}>
-    <div class="row"><span class="hint" style="font-size:13px">Ожидаемый размах</span><span class="pv num ${cls}">${p1(x.range)}<span class="hint" style="font-size:12px;margin-left:8px">${times(x.ratio)}</span></span></div>
-    ${corridor(x)}
-    ${half ? `<p class="hint" style="font-size:12px;margin-top:10px">В деньгах: ход примерно на ±${usd(half)} от ${usd(x.price)}, то есть ${usd(x.price - half)} – ${usd(x.price + half)}, если цена качнётся симметрично.</p>` : ''}
-    <div class="facts">
-      <div><small>Шанс бури</small><b class="num ${x.p_storm >= .4 ? 'down' : ''}">${pct(x.p_storm)}</b></div>
-      <div><small>Проверка</small><b class="num" id="cd">${left(chk)}</b></div>
-      <div><small>Обновлено</small><b class="${stale ? 'down' : ''}">${ago(up).replace(' назад', '')}</b></div>
+  <header>
+    <div class="top">
+      <div class="pair"><div class="coin">S</div><div><b>SOL / USDT</b><small>Binance · часовые свечи</small></div></div>
+      <button class="icon-btn" id="info" aria-label="Как это работает">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9.5"/><path d="M12 11v6M12 7.5h.01"/></svg></button>
     </div>
-  </div>
-  <section class="in" ${n()}><h2>Насколько верить</h2><p class="sub">Прогноз без трек-рекорда ничего не стоит.</p>${trust(x)}</section>
-  <section class="in" ${n()}><h2>Что раскачивает</h2><p class="sub">Как фактор меняет ожидаемый размах относительно среднего за всю историю. Буква — схема.</p>${drivers(x.reasons)}</section>
-  <section class="in" ${n()} id="track"><h2>Последние прогнозы</h2><p class="sub">Зелёный — размах попал в коридор, красный — движение оказалось сильнее, серый — слабее.</p>${record(sel)}</section>
-  <footer class="in" ${n()}><p>Не финансовый совет. Прогноз размаха не говорит, куда пойдёт цена.</p><p>Данные: Binance, DefiLlama, alternative.me. Обновление каждый час.</p></footer>`;
+    <div class="price-row"><div class="price num">${usd(D.price)}</div>
+      <span class="pill num ${ok(ch) ? (ch >= 0 ? 'green' : 'red') : ''}">${spct(ch)} · 24ч</span></div>
+    <div class="fresh"><span class="dot ${stale ? 'stale' : ''}"></span>${stale ? 'Данные устарели · ' : ''}обновлено ${ago(up)}</div>
+  </header>
 
-  app.querySelectorAll('.hz button').forEach(b => b.onclick = () => { sel = b.dataset.h; tg && tg.HapticFeedback && tg.HapticFeedback.selectionChanged(); render(); });
+  <nav class="seg" role="tablist" aria-label="Срок прогноза">
+    <span class="thumb" style="width:calc((100% - 4px) / ${keys.length});transform:translateX(${idx * 100}%)"></span>
+    ${keys.map(k => { const c = (D.horizons[k].label || ''); const dotc = c === 'storm' ? 'var(--red)' : c === 'calm' ? 'var(--green)' : '';
+      return `<button role="tab" data-h="${esc(k)}" aria-selected="${k === sel}">${esc(hz(k, 0))}${dotc ? `<i style="background:${dotc}"></i>` : ''}</button>`; }).join('')}
+  </nav>
+
+  <section class="card pad hero">
+    <div><span class="status ${cls}">${word}</span><h1>${title}</h1><p>${lede}</p></div>
+    ${ring(x.p_storm, cls)}
+  </section>
+
+  <section class="card">
+    <div class="chart-head"><b>Цена и прогнозный коридор</b><span class="muted" style="font-size:12px">${esc(hz(sel, 0))} вперёд</span></div>
+    <div id="chart"></div>
+    <div class="legend"><span><i class="solid" style="color:${cls === 'storm' ? 'var(--red)' : cls === 'calm' ? 'var(--green)' : 'var(--blue)'}"></i>ожидаемый размах</span>
+      <span><i style="color:${cls === 'storm' ? 'var(--red)' : cls === 'calm' ? 'var(--green)' : 'var(--blue)'}"></i>коридор 80%</span></div>
+  </section>
+
+  <div class="tiles">
+    <div class="tile"><small>Ожидаемый размах</small><b class="num">${p2(x.range)}</b><em class="num">${half ? '≈ ' + usd(half * 2) : ''}</em></div>
+    <div class="tile"><small>Коридор 80%</small><b class="num">${p2(x.lo)} – ${p2(x.hi)}</b><em>8 из 10 случаев</em></div>
+    <div class="tile"><small>Обычный размах</small><b class="num">${p2(x.typical)}</b><em>за последние 30 дней</em></div>
+    <div class="tile"><small>Проверка</small><b class="num" id="cd">${left(chk)}</b><em class="num">в ${fTime(chk)}</em></div>
+  </div>
+
+  <div class="section-title">НАСКОЛЬКО ВЕРИТЬ</div>
+  ${trust(x)}
+
+  <div class="section-title">ЧТО РАСКАЧИВАЕТ ЦЕНУ СЕЙЧАС</div>
+  <div class="list">${drivers(x.reasons)}</div>
+  <p class="note">Насколько каждый фактор увеличивает (красный) или уменьшает (зелёный) ожидаемый размах относительно среднего за всю историю.</p>
+
+  <div class="section-title">ПОСЛЕДНИЕ ПРОВЕРКИ</div>
+  <div class="card pad">${record(sel)}</div>
+
+  <div class="foot"><button class="link" id="info2">Как это работает</button><br>
+    Не финансовый совет. Прогноз размаха не говорит, куда пойдёт цена.<br>Данные Binance, обновление каждый час.</div>`;
+
+  app.querySelectorAll('.seg button').forEach(b => b.onclick = () => {
+    if (b.dataset.h === sel) return;
+    sel = b.dataset.h; tg && tg.HapticFeedback && tg.HapticFeedback.selectionChanged(); render();
+  });
+  ['info', 'info2'].forEach(id => document.getElementById(id).onclick = openSheet);
+  drawChart(x);
   clearInterval(timer);
   timer = setInterval(() => { const el = document.getElementById('cd'); if (el) el.textContent = left(chk); }, 1000);
 }
 
-function skeleton(){
-  app.innerHTML = `<div class="sk" style="height:40px;width:55%"></div><div class="sk" style="height:64px;margin-top:16px"></div>
-    <div class="sk" style="height:40px;margin-top:22px"></div><div class="sk" style="height:56px;width:60%;margin-top:22px"></div>
-    <div class="sk" style="height:150px;margin-top:22px"></div>`;
+function openSheet(){
+  document.body.classList.add('open');
+  if (tg && tg.BackButton) { tg.BackButton.show(); tg.BackButton.onClick(closeSheet); }
 }
+function closeSheet(){
+  document.body.classList.remove('open');
+  if (tg && tg.BackButton) { tg.BackButton.hide(); tg.BackButton.offClick(closeSheet); }
+}
+document.getElementById('scrim').onclick = closeSheet;
+document.getElementById('close-sheet').onclick = closeSheet;
 
+function skeleton(){
+  app.innerHTML = `<div class="sk" style="height:110px;margin-top:8px"></div><div class="sk" style="height:34px;margin-top:16px;border-radius:10px"></div>
+    <div class="sk" style="height:140px;margin-top:12px"></div><div class="sk" style="height:300px;margin-top:12px"></div>`;
+}
 function fail(msg){
   clearInterval(timer);
-  app.innerHTML = `<div class="state"><div class="ticker">SOL / USD</div><h1>Прогноз не загрузился</h1>
-    <p class="soft">${esc(msg)}</p><button class="btn" id="retry">Повторить</button></div>
-    <footer><p>Не финансовый совет.</p></footer>`;
+  app.innerHTML = `<div class="err"><h1>Прогноз не загрузился</h1><p class="soft">${esc(msg)}</p><button class="btn" id="retry">Повторить</button></div>`;
   document.getElementById('retry').onclick = load;
 }
-
 async function getJSON(url){
   const r = await fetch(url, {cache: 'no-cache'});
-  if (!r.ok) throw new Error(`Сервер ответил ${r.status} на ${url}.`);
+  if (!r.ok) throw new Error(`Сервер ответил ${r.status}.`);
   return r.json();
 }
-
 async function load(){
   skeleton();
   const [d, h] = await Promise.allSettled([getJSON(SRC), getJSON(HIST)]);
