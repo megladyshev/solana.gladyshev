@@ -1,19 +1,24 @@
 name: predict
 
+# GitHub runs hourly schedules on a best-effort basis and silently drops many of them (only 15 of ~72 ran in
+# three days). So one run keeps forecasting every hour by itself for ~5.5 h, and the hourly schedule only has
+# to fire once in that window to start the next run: while one runs, the next waits in the concurrency queue.
 on:
   schedule:
-    - cron: "7 * * * *"   # every hour, a few minutes after the candle closes
+    - cron: "17 * * * *"   # off the top of the hour, when GitHub's schedulers are busiest
   workflow_dispatch:
 
 permissions:
   contents: write
 
-concurrency: predict
+concurrency:
+  group: predict
+  cancel-in-progress: false
 
 jobs:
   run:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 345
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -26,14 +31,23 @@ jobs:
           path: data
           key: data-${{ github.run_id }}
           restore-keys: data-
-      - run: python predict.py
+      - name: forecast every hour for about 5.5 hours
         env:
           TG_TOKEN: ${{ secrets.TG_TOKEN }}
           TG_CHAT: ${{ secrets.TG_CHAT }}
           APP_URL: ${{ vars.APP_URL }}
-      - name: commit the new prediction
         run: |
           git config user.name github-actions
           git config user.email github-actions@users.noreply.github.com
-          git add docs/data.json docs/history.json
-          git diff --cached --quiet || (git commit -m "prediction $(date -u +%Y-%m-%dT%H)Z" && git push)
+          end=$(( $(date +%s) + 5 * 3600 + 30 * 60 ))
+          while :; do
+            python predict.py || echo "::warning::predict.py failed at $(date -u +%H:%M)Z"
+            git add docs/data.json docs/history.json
+            if ! git diff --cached --quiet; then
+              git commit -q -m "prediction $(date -u +%Y-%m-%dT%H)Z"
+              git pull -q --rebase && git push -q || echo "::warning::push failed at $(date -u +%H:%M)Z"
+            fi
+            next=$(( ($(date +%s) / 3600 + 1) * 3600 + 5 * 60 ))      # 5 minutes after the next candle closes
+            [ "$next" -ge "$end" ] && break
+            sleep $(( next - $(date +%s) ))
+          done
