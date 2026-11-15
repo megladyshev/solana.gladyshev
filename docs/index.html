@@ -3,204 +3,229 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#07090D">
 <meta name="description" content="Прогноз размаха движения SOL с честным трек-рекордом">
 <title>SOL · размах движения</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%23131722'/%3E%3Cpath d='M7 20l5-6 4 3 6-8 3 3' stroke='%232962FF' stroke-width='2.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%2307090D'/%3E%3Cpath d='M7 20l5-6 4 3 6-8 3 3' stroke='%235B8CFF' stroke-width='2.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Unbounded:wght@500;600;700&display=swap" rel="stylesheet">
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script src="https://unpkg.com/lightweight-charts@4.2.3/dist/lightweight-charts.standalone.production.js"></script>
 <style>
-/* Palette: TradingView. Type and controls: Apple (SF Pro on Apple devices, Inter elsewhere). */
 :root{
-  --bg:#F2F3F7; --card:#FFFFFF; --fill:#EEF0F5; --thumb:#FFFFFF; --line:rgba(19,23,34,.08);
-  --text:#131722; --soft:#434651; --muted:#787B86;
-  --green:#089981; --red:#F23645; --blue:#2962FF; --amber:#F7931A;
-  --green-a:rgba(8,153,129,.12); --red-a:rgba(242,54,69,.12); --blue-a:rgba(41,98,255,.12);
-  --shadow:0 1px 2px rgba(19,23,34,.06),0 4px 16px -8px rgba(19,23,34,.12);
-  --thumb-shadow:0 1px 3px rgba(19,23,34,.12),0 3px 8px rgba(19,23,34,.06);
-  color-scheme:light;
-}
-:root[data-theme="dark"]{
-  --bg:#0E1117; --card:#171B26; --fill:#1E222D; --thumb:#2A2E39; --line:rgba(255,255,255,.06);
-  --text:#F0F3FA; --soft:#B2B5BE; --muted:#787B86;
-  --green:#22AB94; --red:#F7525F; --blue:#3179F5; --amber:#F7931A;
-  --green-a:rgba(34,171,148,.15); --red-a:rgba(247,82,95,.15); --blue-a:rgba(49,121,245,.16);
-  --shadow:0 0 0 1px rgba(255,255,255,.04); --thumb-shadow:0 1px 2px rgba(0,0,0,.4);
+  --bg:#07090D; --surface:#0E121A; --surface-2:#131824; --raise:#1A2030; --line:rgba(255,255,255,.06); --line-2:rgba(255,255,255,.1);
+  --text:#EEF1F7; --soft:#A3AABA; --muted:#687083;
+  --green:#26A69A; --red:#EF5350; --blue:#5B8CFF; --amber:#F5A524;
+  --green-a:rgba(38,166,154,.14); --red-a:rgba(239,83,80,.14); --blue-a:rgba(91,140,255,.14);
+  --accent:var(--blue); --accent-a:var(--blue-a);
+  --card-shadow:0 0 0 1px var(--line), inset 0 1px 0 rgba(255,255,255,.035), 0 1px 2px rgba(0,0,0,.55), 0 16px 32px -20px rgba(0,0,0,.9);
+  --ease-out:cubic-bezier(.23,1,.32,1); --ease-in-out:cubic-bezier(.77,0,.175,1); --ease-drawer:cubic-bezier(.32,.72,0,1);
+  --display:Unbounded,Manrope,system-ui,sans-serif;
   color-scheme:dark;
 }
+body[data-state="storm"]{--accent:var(--red);--accent-a:var(--red-a)}
+body[data-state="calm"]{--accent:var(--green);--accent-a:var(--green-a)}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;background:var(--bg)}
-body{color:var(--text);font:15px/1.4 -apple-system,BlinkMacSystemFont,"SF Pro Text",Inter,system-ui,sans-serif;
-  -webkit-font-smoothing:antialiased;font-feature-settings:"cv11","ss01";min-height:100dvh}
-.num{font-variant-numeric:tabular-nums}
-main{max-width:480px;margin:0 auto;padding:12px 16px calc(32px + env(safe-area-inset-bottom))}
+body{color:var(--text);font:15px/1.45 Manrope,system-ui,sans-serif;font-weight:500;-webkit-font-smoothing:antialiased;min-height:100dvh;overflow-x:hidden}
+/* ambient light: blue by default, red in a storm, green in calm; only opacity animates */
+.glow{position:fixed;inset:0 0 auto;height:520px;pointer-events:none;z-index:0;opacity:0;transition:opacity 600ms ease}
+.glow.b{background:radial-gradient(70% 60% at 50% -10%,rgba(91,140,255,.16),transparent 70%)}
+.glow.r{background:radial-gradient(70% 60% at 50% -10%,rgba(239,83,80,.16),transparent 70%)}
+.glow.g{background:radial-gradient(70% 60% at 50% -10%,rgba(38,166,154,.14),transparent 70%)}
+body[data-state="normal"] .glow.b,body[data-state="storm"] .glow.r,body[data-state="calm"] .glow.g{opacity:1}
+main{position:relative;z-index:1;max-width:480px;margin:0 auto;padding:14px 16px calc(36px + env(safe-area-inset-bottom))}
 button{font:inherit;color:inherit}
 p{margin:0}
-.muted{color:var(--muted)} .soft{color:var(--soft)}
-.green{color:var(--green)} .red{color:var(--red)} .blue{color:var(--blue)}
+.num{font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)} .soft{color:var(--soft)} .green{color:var(--green)} .red{color:var(--red)}
+.press{transition:transform 160ms var(--ease-out)} .press:active{transform:scale(.97)}
+.swap{transition:filter 200ms ease,opacity 200ms ease}
+.swap.out{filter:blur(3px);opacity:.25}
+
+/* first-load stagger (once; never on tab switches) */
+.in{animation:rise 360ms var(--ease-out) both;animation-delay:calc(var(--i,0) * 50ms)}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}}
 
 /* header */
-.top{display:flex;align-items:center;justify-content:space-between;padding:4px 0 2px}
-.pair{display:flex;align-items:center;gap:10px}
-.coin{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#9945FF,#14F195);display:grid;place-items:center;
-  color:#fff;font-weight:700;font-size:15px;letter-spacing:-.02em}
-.pair b{display:block;font-size:16px;font-weight:600;letter-spacing:-.01em}
-.pair small{display:block;font-size:12px;color:var(--muted)}
-.icon-btn{width:34px;height:34px;border-radius:50%;border:0;background:var(--fill);color:var(--soft);display:grid;place-items:center;cursor:pointer;transition:transform .15s,background .2s}
-.icon-btn:active{transform:scale(.92)}
-.price-row{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;margin-top:14px}
-.price{font-size:40px;font-weight:700;letter-spacing:-.035em;line-height:1}
-.pill{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;padding:5px 10px;border-radius:999px}
-.pill.green{background:var(--green-a)} .pill.red{background:var(--red-a)} .pill.blue{background:var(--blue-a)}
-.fresh{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);margin-top:8px}
-.dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 0 3px var(--green-a)}
-.dot.stale{background:var(--amber);box-shadow:0 0 0 3px rgba(247,147,26,.15)}
+.top{display:flex;align-items:center;justify-content:space-between}
+.pair{display:flex;align-items:center;gap:11px}
+.coin{width:36px;height:36px;border-radius:12px;background:linear-gradient(140deg,#9945FF 0%,#4F7BFF 55%,#14F195 100%);display:grid;place-items:center;
+  font-family:var(--display);font-weight:600;font-size:14px;color:#fff;box-shadow:0 6px 18px -6px rgba(91,140,255,.6),inset 0 1px 0 rgba(255,255,255,.3)}
+.pair b{display:block;font-size:15px;font-weight:700;letter-spacing:-.01em}
+.pair small{display:block;font-size:12px;color:var(--muted);font-weight:500}
+.icon-btn{width:36px;height:36px;border-radius:12px;border:0;background:var(--surface-2);color:var(--soft);display:grid;place-items:center;cursor:pointer;
+  box-shadow:0 0 0 1px var(--line),inset 0 1px 0 rgba(255,255,255,.04)}
+.price-row{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;margin-top:18px}
+.price{font-family:var(--display);font-size:38px;font-weight:600;letter-spacing:-.03em;line-height:1}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:700;padding:6px 10px;border-radius:10px}
+.chip.green{background:var(--green-a)} .chip.red{background:var(--red-a)}
+.fresh{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--muted);margin-top:10px}
+.live{position:relative;width:7px;height:7px;border-radius:50%;background:var(--green)}
+.live::after{content:"";position:absolute;inset:-4px;border-radius:50%;border:1.5px solid var(--green);opacity:0;animation:ping 2.4s var(--ease-out) infinite}
+.live.stale{background:var(--amber)} .live.stale::after{border-color:var(--amber)}
+@keyframes ping{0%{opacity:.7;transform:scale(.6)}100%{opacity:0;transform:scale(1.6)}}
 
-/* iOS segmented control */
-.seg{position:relative;display:grid;grid-auto-flow:column;grid-auto-columns:1fr;background:var(--fill);border-radius:10px;padding:2px;margin-top:18px}
-.seg .thumb{position:absolute;top:2px;bottom:2px;left:2px;border-radius:8px;background:var(--thumb);box-shadow:var(--thumb-shadow);
-  transition:transform .32s cubic-bezier(.3,.9,.3,1)}
-.seg button{position:relative;z-index:1;border:0;background:none;padding:7px 0;font-size:13px;font-weight:600;color:var(--soft);cursor:pointer}
+/* segmented control */
+.seg{position:relative;display:grid;grid-auto-flow:column;grid-auto-columns:1fr;background:var(--surface);border-radius:13px;padding:3px;margin-top:20px;box-shadow:0 0 0 1px var(--line)}
+.seg .thumb{position:absolute;top:3px;bottom:3px;left:3px;border-radius:10px;background:var(--raise);
+  box-shadow:0 0 0 1px var(--line-2),inset 0 1px 0 rgba(255,255,255,.06),0 4px 12px -4px rgba(0,0,0,.7);transition:transform 240ms var(--ease-in-out)}
+.seg button{position:relative;z-index:1;border:0;background:none;padding:9px 0;font-size:13px;font-weight:700;color:var(--muted);cursor:pointer;transition:color 200ms ease}
 .seg button[aria-selected="true"]{color:var(--text)}
-.seg i{display:inline-block;width:5px;height:5px;border-radius:50%;margin-left:5px;vertical-align:2px}
+.seg i{display:inline-block;width:5px;height:5px;border-radius:50%;margin-left:6px;vertical-align:2px}
 
 /* cards */
-.card{background:var(--card);border-radius:16px;box-shadow:var(--shadow);margin-top:12px}
-.pad{padding:16px}
-.section-title{font-size:13px;font-weight:600;color:var(--muted);margin:24px 4px 0;letter-spacing:.01em}
-.hero{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center}
-.status{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:4px 9px;border-radius:999px}
-.status::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
-.status.storm{color:var(--red);background:var(--red-a)} .status.calm{color:var(--green);background:var(--green-a)}
-.status.normal{color:var(--blue);background:var(--blue-a)} .status.off{color:var(--muted);background:var(--fill)}
-.hero h1{font-size:22px;font-weight:700;letter-spacing:-.025em;line-height:1.15;margin:10px 0 6px}
-.hero p{font-size:14px;color:var(--soft);line-height:1.45}
-.ring{position:relative;width:88px;height:88px}
-.ring svg{transform:rotate(-90deg)}
+.card{position:relative;background:linear-gradient(180deg,var(--surface-2),var(--surface));border-radius:20px;box-shadow:var(--card-shadow);margin-top:12px}
+.pad{padding:18px}
+.hero{display:grid;grid-template-columns:1fr auto;gap:14px;align-items:center;overflow:hidden}
+.hero::before{content:"";position:absolute;inset:-40% -20% auto auto;width:70%;aspect-ratio:1;border-radius:50%;
+  background:radial-gradient(closest-side,var(--accent-a),transparent);pointer-events:none;transition:background 400ms ease}
+.status{position:relative;display:inline-flex;align-items:center;gap:7px;font-family:var(--display);font-size:11px;font-weight:600;letter-spacing:.02em;
+  padding:6px 10px;border-radius:9px;color:var(--accent);background:var(--accent-a);transition:color 300ms ease,background 300ms ease}
+.status::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;box-shadow:0 0 10px currentColor}
+.hero h1{position:relative;font-family:var(--display);font-size:19px;font-weight:600;letter-spacing:-.02em;line-height:1.2;margin:12px 0 8px}
+.hero p{position:relative;font-size:14px;color:var(--soft);line-height:1.5}
+.hero p b{color:var(--text);font-weight:700}
+.ring{position:relative;width:92px;height:92px}
+.ring svg{transform:rotate(-90deg);overflow:visible}
+.ring .arc{transition:stroke-dashoffset 600ms var(--ease-out),stroke 300ms ease;filter:drop-shadow(0 0 6px var(--accent))}
 .ring .v{position:absolute;inset:0;display:grid;place-items:center;text-align:center}
-.ring b{font-size:21px;font-weight:700;letter-spacing:-.03em;line-height:1}
-.ring small{display:block;font-size:10px;color:var(--muted);margin-top:3px}
-.ring circle{transition:stroke-dashoffset .8s cubic-bezier(.3,.9,.3,1)}
+.ring b{font-family:var(--display);font-size:20px;font-weight:600;letter-spacing:-.03em;line-height:1}
+.ring small{display:block;font-size:10px;font-weight:600;color:var(--muted);margin-top:4px;letter-spacing:.02em}
 
 /* chart */
-.chart-head{display:flex;justify-content:space-between;align-items:baseline;padding:14px 16px 0}
-.chart-head b{font-size:15px;font-weight:600}
-#chart{height:250px;margin:14px 4px 0}
-.legend{display:flex;gap:14px;flex-wrap:wrap;padding:8px 16px 14px;font-size:11px;color:var(--muted)}
-.legend span{display:inline-flex;align-items:center;gap:6px}
-.legend i{display:inline-block;width:14px;height:0;border-top:2px dashed currentColor}
-.legend i.solid{border-top-style:solid}
+.chart-card{overflow:hidden}
+.chart-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:16px 16px 0}
+.chart-head b{font-size:15px;font-weight:700;letter-spacing:-.01em}
+.chart-head .tools{display:flex;gap:6px}
+.tool{height:30px;min-width:30px;padding:0 9px;border-radius:9px;border:0;background:var(--raise);color:var(--soft);font-size:12px;font-weight:700;cursor:pointer;
+  display:inline-flex;align-items:center;gap:5px;box-shadow:0 0 0 1px var(--line),inset 0 1px 0 rgba(255,255,255,.05)}
+#chart{height:340px;margin:10px 2px 0;touch-action:pan-y}
+.legend{display:flex;gap:16px;flex-wrap:wrap;padding:10px 16px 14px;font-size:11px;font-weight:600;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:7px}
+.legend i{display:inline-block;width:16px;height:0;border-top:2px solid var(--accent)}
+.legend i.dash{border-top-style:dashed}
+.hint{font-size:11px;color:var(--muted);padding:0 16px 14px;margin-top:-6px}
+.chart-card.full{position:fixed;inset:0;z-index:20;margin:0;border-radius:0;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top);
+  background:var(--bg)}
+.chart-card.full #chart{flex:1;height:auto;touch-action:none}
+.chart-card .close{display:none} .chart-card.full .close{display:inline-flex} .chart-card.full .open-full{display:none}
 
 /* stat tiles */
 .tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
-.tile{background:var(--card);border-radius:14px;box-shadow:var(--shadow);padding:12px 14px}
-.tile small{display:block;font-size:12px;color:var(--muted)}
-.tile b{display:block;font-size:19px;font-weight:600;letter-spacing:-.02em;margin-top:4px}
-.tile em{font-style:normal;font-size:12px;color:var(--muted)}
+.tile{background:linear-gradient(180deg,var(--surface-2),var(--surface));border-radius:16px;box-shadow:var(--card-shadow);padding:13px 14px}
+.tile small{display:block;font-size:12px;font-weight:600;color:var(--muted)}
+.tile b{display:block;font-family:var(--display);font-size:17px;font-weight:600;letter-spacing:-.02em;margin-top:6px}
+.tile em{font-style:normal;font-size:12px;color:var(--muted);font-weight:500}
 
-/* grouped list (Apple settings style) */
-.list{background:var(--card);border-radius:16px;box-shadow:var(--shadow);margin-top:8px;overflow:hidden}
-.row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;position:relative;font-size:15px}
+/* grouped lists */
+.section-title{font-family:var(--display);font-size:11px;font-weight:600;color:var(--muted);margin:28px 4px 0;letter-spacing:.06em}
+.list{background:linear-gradient(180deg,var(--surface-2),var(--surface));border-radius:18px;box-shadow:var(--card-shadow);margin-top:10px;overflow:hidden}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 16px;position:relative}
 .row+.row::before{content:"";position:absolute;top:0;left:16px;right:0;border-top:1px solid var(--line)}
-.row .k{color:var(--text)} .row .k small{display:block;font-size:12px;color:var(--muted);margin-top:1px}
-.row .val{font-weight:600;text-align:right;white-space:nowrap}
-.note{font-size:12px;color:var(--muted);margin:8px 16px 0;line-height:1.45}
-
-/* drivers */
+.row .k{font-weight:600} .row .k small{display:block;font-size:12px;color:var(--muted);font-weight:500;margin-top:2px}
+.row .val{font-family:var(--display);font-size:15px;font-weight:600;text-align:right;white-space:nowrap}
+.note{font-size:12px;color:var(--muted);margin:10px 16px 0;line-height:1.5}
 .drv{display:grid;grid-template-columns:minmax(0,1fr) 76px 46px;align-items:center;gap:10px}
-.drv .n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.drv .b{position:relative;height:6px;background:var(--fill);border-radius:3px}
-.drv .b::after{content:"";position:absolute;left:50%;top:-3px;bottom:-3px;width:1px;background:var(--muted);opacity:.4}
-.drv .b i{position:absolute;top:0;bottom:0;border-radius:3px}
-.drv .v{text-align:right;font-size:13px;font-weight:600}
-
-/* track record */
+.drv .n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.drv .b{position:relative;height:6px;background:var(--raise);border-radius:3px}
+.drv .b::after{content:"";position:absolute;left:50%;top:-3px;bottom:-3px;width:1px;background:var(--muted);opacity:.5}
+.drv .b i{position:absolute;top:0;bottom:0;border-radius:3px;transition:width 400ms var(--ease-out)}
+.drv .v{text-align:right;font-size:13px;font-weight:700}
 .strip{display:grid;grid-template-columns:repeat(15,1fr);gap:4px}
-.strip span{aspect-ratio:1;border-radius:4px;background:var(--fill)}
-.strip .inside{background:var(--green)} .strip .above{background:var(--red)} .strip .below{background:var(--muted);opacity:.45}
-.strip .pend{background:none;box-shadow:inset 0 0 0 1px var(--muted);opacity:.6}
-.counts{display:flex;gap:14px;flex-wrap:wrap;margin-top:12px;font-size:12px;font-weight:500}
-details summary{list-style:none;cursor:pointer;font-weight:600;font-size:15px;display:flex;justify-content:space-between;align-items:center}
+.strip span{aspect-ratio:1;border-radius:4px;background:var(--raise)}
+.strip .inside{background:var(--green);box-shadow:0 0 8px -2px var(--green)} .strip .above{background:var(--red);box-shadow:0 0 8px -2px var(--red)}
+.strip .below{background:var(--muted);opacity:.5} .strip .pend{background:none;box-shadow:inset 0 0 0 1px var(--muted);opacity:.6}
+.counts{display:flex;gap:14px;flex-wrap:wrap;margin-top:12px;font-size:12px;font-weight:700}
+details summary{list-style:none;cursor:pointer;font-weight:700;display:flex;justify-content:space-between;align-items:center;margin-top:14px}
 details summary::-webkit-details-marker{display:none}
-details summary::after{content:"›";font-size:20px;color:var(--muted);transition:transform .2s}
+details summary::after{content:"›";font-size:20px;color:var(--muted);transition:transform 200ms var(--ease-out)}
 details[open] summary::after{transform:rotate(90deg)}
 .log{list-style:none;margin:10px 0 0;padding:0}
-.log li{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:12px;align-items:center;padding:9px 0;border-top:1px solid var(--line);font-size:13px}
-.log small{display:block;color:var(--muted);font-size:11px}
-.empty{font-size:14px;color:var(--soft);line-height:1.45}
+.log li{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:12px;align-items:center;padding:9px 0;border-top:1px solid var(--line);font-size:13px;font-weight:600}
+.log small{display:block;color:var(--muted);font-size:11px;font-weight:500}
+.empty{font-size:14px;color:var(--soft)}
 
-/* footer and info sheet */
-.foot{text-align:center;font-size:12px;color:var(--muted);margin-top:28px;line-height:1.5}
-.link{border:0;background:none;color:var(--blue);font-weight:600;font-size:15px;cursor:pointer;padding:12px}
-.scrim{position:fixed;inset:0;background:rgba(0,0,0,.35);opacity:0;pointer-events:none;transition:opacity .25s;z-index:10}
-.sheet{position:fixed;left:0;right:0;bottom:0;max-height:88dvh;overflow:auto;background:var(--card);border-radius:18px 18px 0 0;
-  padding:8px 20px calc(24px + env(safe-area-inset-bottom));transform:translateY(102%);transition:transform .35s cubic-bezier(.3,.9,.3,1);z-index:11;max-width:480px;margin:0 auto}
-.open .scrim{opacity:1;pointer-events:auto} .open .sheet{transform:none}
-.grab{width:36px;height:5px;border-radius:3px;background:var(--fill);margin:0 auto 12px}
-.sheet h2{font-size:22px;font-weight:700;letter-spacing:-.025em;margin:4px 0 12px}
-.sheet h3{font-size:15px;font-weight:600;margin:18px 0 4px}
-.sheet p{font-size:14px;color:var(--soft);line-height:1.5}
-.sheet .tag{display:inline-block;font-size:12px;font-weight:600;padding:2px 8px;border-radius:999px;margin-right:4px}
+/* footer and sheet */
+.foot{text-align:center;font-size:12px;color:var(--muted);margin-top:30px;line-height:1.6}
+.link{border:0;background:none;color:var(--blue);font-weight:700;font-size:15px;cursor:pointer;padding:12px}
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);opacity:0;pointer-events:none;transition:opacity 250ms ease;z-index:30}
+.sheet{position:fixed;left:0;right:0;bottom:0;max-height:86dvh;overflow:auto;max-width:480px;margin:0 auto;z-index:31;
+  background:linear-gradient(180deg,#151a26,#0E121A);border-radius:24px 24px 0 0;box-shadow:0 0 0 1px var(--line-2),0 -20px 50px -20px rgba(0,0,0,.9);
+  padding:10px 20px calc(24px + env(safe-area-inset-bottom));transform:translateY(100%);transition:transform 260ms var(--ease-out)}
+body.open .scrim{opacity:1;pointer-events:auto}
+body.open .sheet{transform:none;transition:transform 420ms var(--ease-drawer)}
+.grab{width:38px;height:5px;border-radius:3px;background:var(--line-2);margin:0 auto 14px}
+.sheet h2{font-family:var(--display);font-size:20px;font-weight:600;letter-spacing:-.02em;margin:4px 0 12px}
+.sheet h3{font-size:15px;font-weight:800;margin:20px 0 5px}
+.sheet p{font-size:14px;color:var(--soft);line-height:1.55}
+.sheet .tag{display:inline-block;font-family:var(--display);font-size:10px;font-weight:600;padding:3px 8px;border-radius:7px;margin-right:6px;vertical-align:1px}
 
 /* states */
-.sk{background:var(--card);border-radius:16px;animation:pulse 1.4s ease-in-out infinite}
-@keyframes pulse{50%{opacity:.55}}
-@media (prefers-reduced-motion:reduce){.sk{animation:none}.seg .thumb,.sheet,.ring circle{transition:none}}
-.err{text-align:center;padding:64px 12px}
-.err h1{font-size:22px;letter-spacing:-.02em;margin:0 0 8px}
-.btn{margin-top:18px;border:0;background:var(--blue);color:#fff;font-weight:600;padding:12px 22px;border-radius:12px;cursor:pointer}
+.sk{background:var(--surface);border-radius:18px;animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.5}}
+.err{text-align:center;padding:72px 12px}
+.err h1{font-family:var(--display);font-size:20px;font-weight:600;margin:0 0 10px}
+.btn{margin-top:20px;border:0;background:var(--blue);color:#fff;font-weight:700;padding:12px 22px;border-radius:12px;cursor:pointer}
 :focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+@media (hover:hover) and (pointer:fine){
+  .icon-btn:hover,.tool:hover{background:#222a3d;color:var(--text)}
+  .seg button:hover{color:var(--soft)} .seg button[aria-selected="true"]:hover{color:var(--text)}
+  .icon-btn,.tool{transition:transform 160ms var(--ease-out),background 150ms ease,color 150ms ease}
+}
+@media (prefers-reduced-motion:reduce){
+  .in{animation:fade 200ms ease both} @keyframes fade{from{opacity:0}}
+  .seg .thumb,.sheet,body.open .sheet{transition:none} .live::after{animation:none} .press:active{transform:none}
+}
 </style>
 </head>
-<body>
+<body data-state="normal">
+<div class="glow b"></div><div class="glow r"></div><div class="glow g"></div>
 <main id="app" aria-live="polite"></main>
 <div class="scrim" id="scrim"></div>
 <aside class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title">
   <div class="grab"></div>
   <h2 id="sheet-title">Как это работает</h2>
-  <p>Бот не угадывает, куда пойдёт цена: честная проверка показала, что направление SOL угадывается почти как монетка. Зато он хорошо предсказывает, <b>насколько сильным будет движение</b>.</p>
+  <p>Бот не угадывает, куда пойдёт цена: честная проверка показала, что направление SOL угадывается почти как монетка. Зато он хорошо предсказывает, <b style="color:var(--text)">насколько сильным будет движение</b>.</p>
   <h3>Размах</h3>
   <p>Разница между самой высокой и самой низкой ценой за выбранный срок, в процентах. Размах 2.4% за 4 часа при цене $71 значит, что за эти 4 часа цена пройдёт диапазон примерно в $1.7 — вверх, вниз или туда и обратно.</p>
   <h3>Буря, как обычно, тихо</h3>
-  <p><span class="tag" style="color:var(--red);background:var(--red-a)">Буря</span> шанс, что размах окажется среди 20% самых сильных за последние 90 дней, — 40% или больше.</p>
-  <p style="margin-top:6px"><span class="tag" style="color:var(--blue);background:var(--blue-a)">Как обычно</span> ожидаемый размах близок к типичному за последние 30 дней.</p>
-  <p style="margin-top:6px"><span class="tag" style="color:var(--green);background:var(--green-a)">Тихо</span> ожидаемый размах меньше 0.8 от типичного.</p>
+  <p><span class="tag" style="color:var(--red);background:var(--red-a)">БУРЯ</span>шанс, что размах окажется среди 20% самых сильных за последние 90 дней, — 40% или больше.</p>
+  <p style="margin-top:8px"><span class="tag" style="color:var(--blue);background:var(--blue-a)">КАК ОБЫЧНО</span>ожидаемый размах близок к типичному за 30 дней.</p>
+  <p style="margin-top:8px"><span class="tag" style="color:var(--green);background:var(--green-a)">ТИХО</span>ожидаемый размах меньше 0.8 от типичного.</p>
   <h3>Коридор 80%</h3>
-  <p>В восьми случаях из десяти реальный размах укладывается в этот диапазон. На графике он нарисован конусом вправо от текущей цены, как если бы цена качнулась поровну в обе стороны.</p>
+  <p>В восьми случаях из десяти реальный размах укладывается в этот диапазон. На графике он нарисован конусом вправо от текущей цены: сплошные линии — ожидаемый размах, пунктир — границы коридора, если цена качнётся поровну в обе стороны.</p>
   <h3>Шанс бури</h3>
-  <p>Кольцо справа сверху. 20% — обычный фон (так устроено определение бури), 40% и выше — бот предупреждает.</p>
+  <p>Кольцо справа. 20% — обычный фон (так устроено определение бури), 40% и выше — бот предупреждает в Telegram.</p>
+  <h3>График</h3>
+  <p>Тяни пальцем влево-вправо, чтобы листать историю, разводи двумя пальцами для масштаба по времени, тяни шкалу цены справа для масштаба по цене. На весь экран — кнопка ⤢, там график двигается в любую сторону. Кнопка ↺ возвращает вид.</p>
   <h3>Насколько верить</h3>
-  <p>Каждый прогноз через свой срок сверяется с тем, что было на самом деле. Квадраты внизу — эти проверки: зелёный — размах попал в коридор, красный — движение было сильнее, серый — слабее. На 2025–2026 годах, которых модель не видела, коридор накрывал реальность в 78–82% случаев.</p>
+  <p>Каждый прогноз через свой срок сверяется с реальностью. Квадраты внизу — эти проверки: зелёный — размах попал в коридор, красный — движение было сильнее, серый — слабее. На 2025–2026 годах, которых модель не видела, коридор накрывал реальность в 78–82% случаев.</p>
   <h3>Из чего считается</h3>
   <p>Каждый час: волатильность SOL за час, сутки, неделю и месяц, время суток и волатильность BTC. Модель заново обучается на всей истории с 2021 года.</p>
-  <h3>Чем это полезно</h3>
-  <p>Перед бурей — шире стопы или меньше плечо. В тишине — узкие стопы реже выбивает. Куда пойдёт цена, бот не говорит.</p>
-  <p style="margin-top:18px" class="muted">Не финансовый совет.</p>
-  <div style="text-align:center"><button class="link" id="close-sheet">Понятно</button></div>
+  <h3>Чем полезно</h3>
+  <p>Перед бурей — шире стопы или меньше плечо. В тишине узкие стопы реже выбивает. Куда пойдёт цена, бот не говорит.</p>
+  <p style="margin-top:20px" class="muted">Не финансовый совет.</p>
+  <div style="text-align:center"><button class="link press" id="close-sheet">Понятно</button></div>
 </aside>
 <script>
-const tg = window.Telegram && Telegram.WebApp;
+const tg = window.Telegram && Telegram.WebApp, inTg = !!(tg && tg.initData);
 const q = new URLSearchParams(location.search);
 const SRC = q.get('src') || 'data.json', HIST = q.get('hist') || 'history.json';
 const app = document.getElementById('app');
-const HZ = {'1h':['1ч','1 час','часа'],'4h':['4ч','4 часа','4 часов'],'12h':['12ч','12 часов','12 часов'],'1d':['1д','1 день','суток'],'24h':['1д','1 день','суток']};
+const HZ = {'1h':['1ч','1 час'],'4h':['4ч','4 часа'],'12h':['12ч','12 часов'],'1d':['1д','1 день'],'24h':['1д','1 день']};
 const LBL = {storm:['Буря','Ожидается сильное движение'], normal:['Как обычно','Рынок в обычном ритме'], calm:['Тихо','Ожидается затишье'], off:['Нет сигнала','Модель здесь не работает']};
-let D = null, H = null, sel = null, timer = null, chart = null;
+const COL = {storm:'#EF5350', calm:'#26A69A', normal:'#5B8CFF', off:'#687083'};
+let D = null, H = null, sel = null, timer = null, chart = null, candles = null, cone = [], shown = false;
 
-/* theme: Telegram's light/dark, else the system's; our own colours either way */
-const inTg = !!(tg && tg.initData);                    // the script exists in any browser; only trust it inside Telegram
-const dark = () => inTg ? tg.colorScheme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
-function theme(){
-  document.documentElement.dataset.theme = dark() ? 'dark' : 'light';
-  const bg = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();
-  if (inTg && tg.isVersionAtLeast('6.1')) { tg.setHeaderColor(bg); tg.setBackgroundColor(bg); }
+if (inTg) {
+  tg.ready(); tg.expand();
+  if (tg.isVersionAtLeast('6.1')) { tg.setHeaderColor('#07090D'); tg.setBackgroundColor('#07090D'); }
+  if (tg.isVersionAtLeast('7.7') && tg.disableVerticalSwipes) tg.disableVerticalSwipes();   // dragging the chart must not close the app
 }
-theme();
-if (inTg) { tg.ready(); tg.expand(); tg.onEvent('themeChanged', () => { theme(); D && render(); }); }
-else matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { theme(); D && render(); });
 
+const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const ok = x => typeof x === 'number' && isFinite(x);
 const pct = (x, d = 0) => ok(x) ? (x * 100).toFixed(d) + '%' : '—';
@@ -210,9 +235,7 @@ const usd = x => ok(x) ? '$' + x.toLocaleString('en-US', {minimumFractionDigits:
 const dt = s => { const d = new Date(s); return isNaN(d) ? null : d; };
 const fTime = d => d ? d.toLocaleTimeString('ru-RU', {hour: '2-digit', minute: '2-digit'}) : '—';
 const fDay = d => d ? d.toLocaleDateString('ru-RU', {day: 'numeric', month: 'short'}).replace('.', '') : '';
-const hz = (h, i) => (HZ[h] || [h, h, h])[i];
-const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
-
+const hz = (h, i) => (HZ[h] || [h, h])[i];
 function ago(d){
   if (!d) return '—';
   const m = Math.round((Date.now() - d) / 60000);
@@ -228,80 +251,158 @@ function left(d){
   const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60); s %= 60;
   return h ? `${h} ч ${String(m).padStart(2, '0')} мин` : `${m}:${String(s).padStart(2, '0')}`;
 }
-
-function ring(p, cls){
-  const r = 38, C = 2 * Math.PI * r, v = ok(p) ? Math.min(1, Math.max(0, p)) : 0;
-  const col = {storm: 'var(--red)', calm: 'var(--green)', normal: 'var(--blue)'}[cls] || 'var(--muted)';
-  return `<div class="ring" role="img" aria-label="Шанс бури ${pct(p)}"><svg width="88" height="88" viewBox="0 0 88 88">
-    <circle cx="44" cy="44" r="${r}" fill="none" stroke="var(--fill)" stroke-width="8"/>
-    <circle cx="44" cy="44" r="${r}" fill="none" stroke="${col}" stroke-width="8" stroke-linecap="round"
-      stroke-dasharray="${C}" stroke-dashoffset="${C * (1 - v)}"/></svg>
-    <div class="v"><div><b class="num">${pct(p)}</b><small>шанс бури</small></div></div></div>`;
+/* change text with a short blur crossfade (state change, not decoration); instant on first paint */
+function put(id, html){
+  const el = $(id); if (!el || el.innerHTML === html) return;
+  if (!shown || matchMedia('(prefers-reduced-motion: reduce)').matches) { el.innerHTML = html; return; }
+  el.classList.add('out');
+  setTimeout(() => { el.innerHTML = html; el.classList.remove('out'); }, 120);
 }
 
-/* TradingView chart: hourly candles + the forecast corridor as a cone to the right */
-function drawChart(x){
-  const el = document.getElementById('chart');
-  if (!el || !window.LightweightCharts) { if (el) el.innerHTML = '<p class="muted" style="padding:16px">График не загрузился.</p>'; return; }
-  if (chart) { chart.remove(); chart = null; }
-  const muted = css('--muted'), line = css('--line'), green = css('--green'), red = css('--red');
-  const accent = {storm: red, calm: green, normal: css('--blue')}[x.label] || muted;
+function shell(){
+  const keys = Object.keys(D.horizons);
+  let i = 0; const n = () => `style="--i:${i++}"`;
+  app.innerHTML = `
+  <header class="in" ${n()}>
+    <div class="top">
+      <div class="pair"><div class="coin">S</div><div><b>SOL / USDT</b><small>Binance · часовые свечи</small></div></div>
+      <button class="icon-btn press" id="info" aria-label="Как это работает">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9.5"/><path d="M12 11v6M12 7.5h.01"/></svg></button>
+    </div>
+    <div class="price-row"><div class="price num" id="price"></div><span class="chip num" id="chg"></span></div>
+    <div class="fresh" id="fresh"></div>
+  </header>
+  <nav class="seg in" ${n()} role="tablist" aria-label="Срок прогноза">
+    <span class="thumb" id="thumb" style="width:calc((100% - 6px) / ${keys.length})"></span>
+    ${keys.map(k => `<button class="press" role="tab" data-h="${esc(k)}" aria-selected="false">${esc(hz(k, 0))}<i id="dot-${esc(k)}"></i></button>`).join('')}
+  </nav>
+  <section class="card pad hero in" ${n()}>
+    <div><span class="status swap" id="status"></span><h1 class="swap" id="title"></h1><p class="swap" id="lede"></p></div>
+    <div class="ring" role="img" id="ring"><svg width="92" height="92" viewBox="0 0 92 92">
+      <circle cx="46" cy="46" r="39" fill="none" stroke="var(--raise)" stroke-width="8"/>
+      <circle class="arc" id="arc" cx="46" cy="46" r="39" fill="none" stroke="var(--accent)" stroke-width="8" stroke-linecap="round" stroke-dasharray="245.04" stroke-dashoffset="245.04"/></svg>
+      <div class="v"><div><b class="num swap" id="ringv"></b><small>шанс бури</small></div></div></div>
+  </section>
+  <section class="card chart-card in" ${n()} id="chartcard">
+    <div class="chart-head"><b>Цена и коридор <span class="muted swap" id="chorizon" style="font-weight:600"></span></b>
+      <div class="tools">
+        <button class="tool press" id="reset" aria-label="Вернуть вид">↺</button>
+        <button class="tool press open-full" id="full" aria-label="На весь экран">⤢</button>
+        <button class="tool press close" id="unfull" aria-label="Закрыть полный экран">Готово</button>
+      </div></div>
+    <div id="chart"></div>
+    <div class="legend"><span><i></i>ожидаемый размах</span><span><i class="dash"></i>коридор 80%</span></div>
+    <p class="hint">Листай пальцем, щипок — масштаб, тяни шкалу цены — масштаб по цене.</p>
+  </section>
+  <div class="tiles in" ${n()}>
+    <div class="tile"><small>Ожидаемый размах</small><b class="num swap" id="t-range"></b><em class="num swap" id="t-usd"></em></div>
+    <div class="tile"><small>Коридор 80%</small><b class="num swap" id="t-band"></b><em>8 из 10 случаев</em></div>
+    <div class="tile"><small>Обычный размах</small><b class="num swap" id="t-typ"></b><em>за 30 дней</em></div>
+    <div class="tile"><small>Проверка</small><b class="num" id="cd"></b><em class="num" id="t-at"></em></div>
+  </div>
+  <div class="section-title in" ${n()}>НАСКОЛЬКО ВЕРИТЬ</div>
+  <div class="swap in" ${n()} id="trust"></div>
+  <div class="section-title in" ${n()}>ЧТО РАСКАЧИВАЕТ ЦЕНУ СЕЙЧАС</div>
+  <div class="list swap in" ${n()} id="drivers"></div>
+  <p class="note in" ${n()}>Насколько каждый фактор увеличивает (красный) или уменьшает (зелёный) ожидаемый размах относительно среднего за всю историю.</p>
+  <div class="section-title in" ${n()}>ПОСЛЕДНИЕ ПРОВЕРКИ</div>
+  <div class="card pad swap in" ${n()} id="record"></div>
+  <div class="foot in" ${n()}><button class="link press" id="info2">Как это работает</button><br>
+    Не финансовый совет. Прогноз размаха не говорит, куда пойдёт цена.<br>Данные Binance · обновление каждый час</div>`;
+
+  app.querySelectorAll('.seg button').forEach(b => b.onclick = () => {
+    if (b.dataset.h === sel) return;
+    sel = b.dataset.h; tg && tg.HapticFeedback && tg.HapticFeedback.selectionChanged(); update();
+  });
+  ['info', 'info2'].forEach(id => $(id).onclick = openSheet);
+  $('full').onclick = () => setFull(true);
+  $('unfull').onclick = () => setFull(false);
+  $('reset').onclick = fitView;
+  makeChart();
+}
+
+/* TradingView chart, built once; a tab switch only swaps the cone and the view */
+function makeChart(){
+  const el = $('chart');
+  if (!window.LightweightCharts) { el.innerHTML = '<p class="muted" style="padding:16px">График не загрузился.</p>'; return; }
   chart = LightweightCharts.createChart(el, {
     autoSize: true,
-    layout: {background: {type: 'solid', color: 'transparent'}, textColor: muted, fontSize: 11,
-      fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, system-ui, sans-serif'},
-    grid: {vertLines: {visible: false}, horzLines: {color: line}},
-    rightPriceScale: {borderVisible: false, scaleMargins: {top: .12, bottom: .08}},
-    timeScale: {borderVisible: false, timeVisible: true, secondsVisible: false, rightOffset: 2},
-    crosshair: {mode: 0, vertLine: {color: muted, labelBackgroundColor: css('--thumb')}, horzLine: {color: muted, labelBackgroundColor: css('--thumb')}},
-    handleScroll: false, handleScale: false,
+    layout: {background: {type: 'solid', color: 'transparent'}, textColor: '#687083', fontSize: 11, fontFamily: 'Manrope, system-ui, sans-serif'},
+    grid: {vertLines: {color: 'rgba(255,255,255,.03)'}, horzLines: {color: 'rgba(255,255,255,.05)'}},
+    rightPriceScale: {borderVisible: false, scaleMargins: {top: .14, bottom: .1}},
+    timeScale: {borderVisible: false, timeVisible: true, secondsVisible: false, rightOffset: 3, barSpacing: 9, minBarSpacing: 2},
+    crosshair: {mode: 0, vertLine: {color: 'rgba(255,255,255,.25)', labelBackgroundColor: '#1A2030'}, horzLine: {color: 'rgba(255,255,255,.25)', labelBackgroundColor: '#1A2030'}},
+    handleScroll: {mouseWheel: true, pressedMouseMove: true, horzTouchDrag: true, vertTouchDrag: false},
+    handleScale: {axisPressedMouseMove: {time: true, price: true}, axisDoubleClickReset: {time: true, price: true}, mouseWheel: true, pinch: true},
     localization: {priceFormatter: v => '$' + v.toFixed(2)},
   });
-  const hours = parseInt(sel) || 4, keep = Math.min(96, Math.max(16, hours * 4));   // the cone gets ~20% of the width
-  let bars = (D.candles || []).slice(-keep).map(c => ({time: c[0], open: c[1], high: c[2], low: c[3], close: c[4]}));
-  if (!bars.length && D.spark) {                       // older data.json without candles: a line instead
+  const bars = (D.candles || []).map(c => ({time: c[0], open: c[1], high: c[2], low: c[3], close: c[4]}));
+  if (bars.length) {
+    candles = chart.addCandlestickSeries({upColor: '#26A69A', downColor: '#EF5350', borderVisible: false, wickUpColor: '#26A69A', wickDownColor: '#EF5350',
+      priceLineColor: 'rgba(255,255,255,.35)', priceLineStyle: 2});
+    candles.setData(bars);
+    candles.bars = bars;
+  } else if (D.spark) {                                  // older data.json without candles: a line
     const now = Math.floor(Date.now() / 3600000) * 3600;
-    const s = chart.addAreaSeries({lineColor: accent, topColor: 'transparent', bottomColor: 'transparent', lineWidth: 2});
-    s.setData(D.spark.map((v, i) => ({time: now - (D.spark.length - 1 - i) * 3600, value: v})));
-    bars = null;
-  } else {
-    const cs = chart.addCandlestickSeries({upColor: green, downColor: red, borderVisible: false, wickUpColor: green, wickDownColor: red,
-      priceLineColor: muted, priceLineStyle: 2});
-    cs.setData(bars);
+    candles = chart.addLineSeries({color: '#5B8CFF', lineWidth: 2});
+    const pts = D.spark.map((v, i) => ({time: now - (D.spark.length - 1 - i) * 3600, value: v}));
+    candles.setData(pts);
+    candles.bars = pts.map(p => ({time: p.time, close: p.value}));
   }
-  const last = bars && bars.length ? bars[bars.length - 1] : null;
-  if (last && ok(x.range) && ok(x.lo) && ok(x.hi)) {
-    const h = parseInt(sel) || 4, t0 = last.time + 3600, t1 = t0 + h * 3600, p = last.close;
-    const add = (k, style, width) => { const s = chart.addLineSeries({color: accent, lineWidth: width, lineStyle: style, priceLineVisible: false,
-      lastValueVisible: false, crosshairMarkerVisible: false}); s.setData([{time: t0, value: p}, {time: t1, value: p * (1 + k / 2)}]); };
-    add(x.hi, 2, 1); add(-x.hi, 2, 1); add(x.range, 0, 2); add(-x.range, 0, 2);
-  }
-  chart.timeScale().fitContent();
 }
 
+function drawCone(x){
+  if (!chart || !candles) return;
+  cone.forEach(s => chart.removeSeries(s)); cone = [];
+  const last = candles.bars[candles.bars.length - 1];
+  if (!last || !ok(x.range) || !ok(x.hi)) return;
+  const h = parseInt(sel) || 4, t0 = last.time + 3600, p = last.close, color = COL[x.label] || COL.normal;
+  const add = (k, style, width) => {
+    const s = chart.addLineSeries({color, lineWidth: width, lineStyle: style, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false});
+    const pts = []; for (let j = 0; j <= h; j++) pts.push({time: t0 + j * 3600, value: p * (1 + k / 2 * j / h)});
+    s.setData(pts); cone.push(s);
+  };
+  add(x.hi, 2, 1); add(-x.hi, 2, 1); add(x.range, 0, 2); add(-x.range, 0, 2);
+  fitView();
+}
+function fitView(){
+  if (!chart || !candles) return;
+  const n = candles.bars.length, h = parseInt(sel) || 4, keep = Math.min(n, Math.max(18, h * 4));
+  chart.priceScale('right').applyOptions({autoScale: true});
+  chart.timeScale().setVisibleLogicalRange({from: n - keep, to: n + h + 2});
+}
+function setFull(on){
+  const card = $('chartcard');
+  card.classList.toggle('full', on);
+  document.body.style.overflow = on ? 'hidden' : '';
+  chart && chart.applyOptions({handleScroll: {vertTouchDrag: on}});
+  if (on && !matchMedia('(prefers-reduced-motion: reduce)').matches)
+    card.animate([{opacity: .6, transform: 'scale(.98)'}, {opacity: 1, transform: 'none'}], {duration: 220, easing: 'cubic-bezier(.23,1,.32,1)'});
+  if (inTg && tg.BackButton) { on ? (tg.BackButton.show(), tg.BackButton.onClick(offFull)) : (tg.BackButton.hide(), tg.BackButton.offClick(offFull)); }
+  setTimeout(fitView, 30);
+}
+const offFull = () => setFull(false);
+
+function trust(x){
+  const B = x.backtest || {}, L = x.live || {};
+  if (x.enabled === false) return `<div class="list"><div class="row"><span class="k">На этом сроке модель не лучше простого «как обычно»</span></div></div>`;
+  const row = (k, sub, v, cls = '') => `<div class="row"><span class="k">${k}<small>${sub}</small></span><span class="val num ${cls}">${v}</span></div>`;
+  return `<div class="list">
+    ${row('Точнее, чем «как обычно»', 'ошибка прогноза меньше на', ok(B.r2_clim) ? Math.round(B.r2_clim * 100) + '%' : '—', 'green')}
+    ${row('Попадание в коридор 80%', 'на 2025–2026, которые модель не видела', pct(B.cover))}
+    ${row('Буря против тишины', 'во сколько раз размах больше', ok(B.lift) ? '×' + B.lift.toFixed(1) : '—')}
+    ${row('Попадание вживую', 'за 30 дней' + (ok(L.n30) && L.n30 ? ` · ${L.n30} проверок` : ' · проверки копятся'), pct(L.cover30))}</div>`;
+}
 function drivers(list){
-  if (!list || !list.length) return '<p class="muted">Заметных факторов нет.</p>';
+  if (!list || !list.length) return '<div class="row"><span class="muted">Заметных факторов нет.</span></div>';
   const max = Math.max(.05, ...list.map(r => ok(r.push) ? Math.abs(r.push) : 0));
-  return list.map((r, i) => {
+  return list.map(r => {
     const v = ok(r.push) ? r.push : 0, w = Math.abs(v) / max * 50, c = v >= 0 ? 'red' : 'green';
     return `<div class="row drv"><span class="n" title="${esc(r.name)}">${esc(r.name)}</span>
       <span class="b"><i style="background:var(--${c});${v >= 0 ? 'left:50%' : 'right:50%'};width:${w}%"></i></span>
       <span class="v num ${c}">${(v >= 0 ? '+' : '−') + Math.abs(v * 100).toFixed(0)}%</span></div>`;
   }).join('');
 }
-
-function trust(x){
-  const B = x.backtest || {}, L = x.live || {};
-  if (x.enabled === false) return `<div class="list"><div class="row"><span class="k">На этом сроке модель не лучше простого «как обычно»</span></div></div>`;
-  const row = (k, sub, v, cls = '') => `<div class="row"><span class="k">${k}${sub ? `<small>${sub}</small>` : ''}</span><span class="val num ${cls}">${v}</span></div>`;
-  return `<div class="list">
-    ${row('Точнее, чем «как обычно»', 'ошибка прогноза меньше на', ok(B.r2_clim) ? Math.round(B.r2_clim * 100) + '%' : '—', 'green')}
-    ${row('Попадание в коридор 80%', 'на 2025–2026, которые модель не видела', pct(B.cover))}
-    ${row('Буря против тишины', 'во сколько раз размах больше', ok(B.lift) ? '×' + B.lift.toFixed(1) : '—')}
-    ${row('Попадание вживую', 'за 30 дней' + (ok(L.n30) && L.n30 ? `, ${L.n30} проверок` : ', проверки копятся'), pct(L.cover30))}
-  </div>`;
-}
-
 function record(h){
   if (!H) return '<p class="empty">История сейчас недоступна.</p>';
   const rows = H.filter(e => e && e.h === h).slice(-30);
@@ -309,7 +410,7 @@ function record(h){
   const cnt = {inside: 0, above: 0, below: 0, pend: 0};
   rows.forEach(e => cnt[e.result in cnt ? e.result : 'pend']++);
   const cells = rows.map(e => `<span class="${e.result || 'pend'}" title="${esc(fDay(dt(e.t)) + ' ' + fTime(dt(e.t)))}"></span>`).join('')
-    + '<span style="background:none"></span>'.repeat(Math.max(0, 30 - rows.length));
+    + '<span style="background:none;box-shadow:none"></span>'.repeat(Math.max(0, 30 - rows.length));
   const R = {inside: ['в коридоре', 'green'], above: ['сильнее', 'red'], below: ['слабее', 'muted']};
   const li = rows.slice().reverse().map(e => {
     const d = dt(e.t), [rt, rc] = R[e.result] || ['ждём', 'muted'];
@@ -318,111 +419,72 @@ function record(h){
   }).join('');
   return `<div class="strip" role="img" aria-label="Последние ${rows.length} проверок">${cells}</div>
     <div class="counts num"><span class="green">${cnt.inside} в коридоре</span><span class="red">${cnt.above} сильнее</span><span class="muted">${cnt.below} слабее</span><span class="muted">${cnt.pend} ждут</span></div>
-    <details style="margin-top:14px"><summary>Все прогнозы</summary><ul class="log">${li}</ul></details>`;
+    <details><summary>Все прогнозы</summary><ul class="log">${li}</ul></details>`;
 }
 
-function render(){
-  const keys = Object.keys(D.horizons || {});
-  if (!keys.length) return fail('В данных нет ни одного срока.');
+function update(){
+  const keys = Object.keys(D.horizons);
   if (!sel || !D.horizons[sel]) sel = D.horizons[D.main] ? D.main : keys[0];
   const x = D.horizons[sel], cls = x.label in LBL ? x.label : 'normal', [word, title] = LBL[cls];
-  const up = dt(D.updated), chk = dt(x.checkAt), stale = up && Date.now() - up > 2 * 3600e3;
-  const ch = D.change24h, idx = keys.indexOf(sel);
-  const half = ok(x.range) && ok(x.price) ? x.range / 2 * x.price : null;
-  const lede = cls === 'off' ? 'На этом сроке проверка на истории не нашла закономерности.'
-    : `Размах за ${esc(hz(sel, 1))} — около <b class="num">${p2(x.range)}</b>, обычно ${p2(x.typical)}${ok(x.ratio) ? ` (×${x.ratio.toFixed(1)})` : ''}. Куда пойдёт цена, неизвестно.`;
+  const up = dt(D.updated), chk = dt(x.checkAt), stale = up && Date.now() - up > 2 * 3600e3, ch = D.change24h;
+  document.body.dataset.state = cls === 'off' ? 'normal' : cls;
 
-  app.innerHTML = `
-  <header>
-    <div class="top">
-      <div class="pair"><div class="coin">S</div><div><b>SOL / USDT</b><small>Binance · часовые свечи</small></div></div>
-      <button class="icon-btn" id="info" aria-label="Как это работает">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9.5"/><path d="M12 11v6M12 7.5h.01"/></svg></button>
-    </div>
-    <div class="price-row"><div class="price num">${usd(D.price)}</div>
-      <span class="pill num ${ok(ch) ? (ch >= 0 ? 'green' : 'red') : ''}">${spct(ch)} · 24ч</span></div>
-    <div class="fresh"><span class="dot ${stale ? 'stale' : ''}"></span>${stale ? 'Данные устарели · ' : ''}обновлено ${ago(up)}</div>
-  </header>
+  $('price').textContent = usd(D.price);
+  $('chg').className = 'chip num ' + (ok(ch) ? (ch >= 0 ? 'green' : 'red') : '');
+  $('chg').textContent = spct(ch) + ' · 24ч';
+  $('fresh').innerHTML = `<span class="live ${stale ? 'stale' : ''}"></span>${stale ? 'данные устарели · ' : ''}обновлено ${ago(up)}`;
 
-  <nav class="seg" role="tablist" aria-label="Срок прогноза">
-    <span class="thumb" style="width:calc((100% - 4px) / ${keys.length});transform:translateX(${idx * 100}%)"></span>
-    ${keys.map(k => { const c = (D.horizons[k].label || ''); const dotc = c === 'storm' ? 'var(--red)' : c === 'calm' ? 'var(--green)' : '';
-      return `<button role="tab" data-h="${esc(k)}" aria-selected="${k === sel}">${esc(hz(k, 0))}${dotc ? `<i style="background:${dotc}"></i>` : ''}</button>`; }).join('')}
-  </nav>
+  const idx = keys.indexOf(sel);
+  $('thumb').style.transform = `translateX(${idx * 100}%)`;
+  app.querySelectorAll('.seg button').forEach(b => b.setAttribute('aria-selected', b.dataset.h === sel));
+  keys.forEach(k => { const l = D.horizons[k].label; const d = $('dot-' + k); d.style.background = l === 'storm' ? COL.storm : l === 'calm' ? COL.calm : 'transparent'; });
 
-  <section class="card pad hero">
-    <div><span class="status ${cls}">${word}</span><h1>${title}</h1><p>${lede}</p></div>
-    ${ring(x.p_storm, cls)}
-  </section>
+  put('status', word.toUpperCase());
+  put('title', title);
+  put('lede', cls === 'off' ? 'На этом сроке проверка на истории не нашла закономерности.'
+    : `Размах за ${esc(hz(sel, 1))} — около <b class="num">${p2(x.range)}</b>, обычно ${p2(x.typical)}${ok(x.ratio) ? ` (×${x.ratio.toFixed(1)})` : ''}. Куда пойдёт цена, неизвестно.`);
+  const v = ok(x.p_storm) ? Math.min(1, Math.max(0, x.p_storm)) : 0;
+  $('arc').style.strokeDashoffset = 245.04 * (1 - v);
+  $('ring').setAttribute('aria-label', 'Шанс бури ' + pct(x.p_storm));
+  put('ringv', pct(x.p_storm));
+  put('chorizon', '· ' + hz(sel, 0) + ' вперёд');
 
-  <section class="card">
-    <div class="chart-head"><b>Цена и прогнозный коридор</b><span class="muted" style="font-size:12px">${esc(hz(sel, 0))} вперёд</span></div>
-    <div id="chart"></div>
-    <div class="legend"><span><i class="solid" style="color:${cls === 'storm' ? 'var(--red)' : cls === 'calm' ? 'var(--green)' : 'var(--blue)'}"></i>ожидаемый размах</span>
-      <span><i style="color:${cls === 'storm' ? 'var(--red)' : cls === 'calm' ? 'var(--green)' : 'var(--blue)'}"></i>коридор 80%</span></div>
-  </section>
+  const half = ok(x.range) && ok(x.price) ? x.range * x.price : null;
+  put('t-range', p2(x.range)); put('t-usd', half ? '≈ ' + usd(half) : '');
+  put('t-band', `${p2(x.lo).replace('%', '')}–${p2(x.hi)}`); put('t-typ', p2(x.typical));
+  $('t-at').textContent = 'в ' + fTime(chk);
+  put('trust', trust(x)); put('drivers', drivers(x.reasons)); put('record', record(sel));
+  drawCone(x);
 
-  <div class="tiles">
-    <div class="tile"><small>Ожидаемый размах</small><b class="num">${p2(x.range)}</b><em class="num">${half ? '≈ ' + usd(half * 2) : ''}</em></div>
-    <div class="tile"><small>Коридор 80%</small><b class="num">${p2(x.lo)} – ${p2(x.hi)}</b><em>8 из 10 случаев</em></div>
-    <div class="tile"><small>Обычный размах</small><b class="num">${p2(x.typical)}</b><em>за последние 30 дней</em></div>
-    <div class="tile"><small>Проверка</small><b class="num" id="cd">${left(chk)}</b><em class="num">в ${fTime(chk)}</em></div>
-  </div>
-
-  <div class="section-title">НАСКОЛЬКО ВЕРИТЬ</div>
-  ${trust(x)}
-
-  <div class="section-title">ЧТО РАСКАЧИВАЕТ ЦЕНУ СЕЙЧАС</div>
-  <div class="list">${drivers(x.reasons)}</div>
-  <p class="note">Насколько каждый фактор увеличивает (красный) или уменьшает (зелёный) ожидаемый размах относительно среднего за всю историю.</p>
-
-  <div class="section-title">ПОСЛЕДНИЕ ПРОВЕРКИ</div>
-  <div class="card pad">${record(sel)}</div>
-
-  <div class="foot"><button class="link" id="info2">Как это работает</button><br>
-    Не финансовый совет. Прогноз размаха не говорит, куда пойдёт цена.<br>Данные Binance, обновление каждый час.</div>`;
-
-  app.querySelectorAll('.seg button').forEach(b => b.onclick = () => {
-    if (b.dataset.h === sel) return;
-    sel = b.dataset.h; tg && tg.HapticFeedback && tg.HapticFeedback.selectionChanged(); render();
-  });
-  ['info', 'info2'].forEach(id => document.getElementById(id).onclick = openSheet);
-  drawChart(x);
   clearInterval(timer);
-  timer = setInterval(() => { const el = document.getElementById('cd'); if (el) el.textContent = left(chk); }, 1000);
+  const tick = () => { $('cd').textContent = left(chk); };
+  tick(); timer = setInterval(tick, 1000);
+  shown = true;
 }
 
-function openSheet(){
-  document.body.classList.add('open');
-  if (tg && tg.BackButton) { tg.BackButton.show(); tg.BackButton.onClick(closeSheet); }
-}
-function closeSheet(){
-  document.body.classList.remove('open');
-  if (tg && tg.BackButton) { tg.BackButton.hide(); tg.BackButton.offClick(closeSheet); }
-}
-document.getElementById('scrim').onclick = closeSheet;
-document.getElementById('close-sheet').onclick = closeSheet;
+function openSheet(){ document.body.classList.add('open'); if (inTg && tg.BackButton) { tg.BackButton.show(); tg.BackButton.onClick(closeSheet); } }
+function closeSheet(){ document.body.classList.remove('open'); if (inTg && tg.BackButton) { tg.BackButton.hide(); tg.BackButton.offClick(closeSheet); } }
+$('scrim').onclick = closeSheet; $('close-sheet').onclick = closeSheet;
+addEventListener('keydown', e => { if (e.key === 'Escape') { closeSheet(); if ($('chartcard')?.classList.contains('full')) setFull(false); } });
 
 function skeleton(){
-  app.innerHTML = `<div class="sk" style="height:110px;margin-top:8px"></div><div class="sk" style="height:34px;margin-top:16px;border-radius:10px"></div>
-    <div class="sk" style="height:140px;margin-top:12px"></div><div class="sk" style="height:300px;margin-top:12px"></div>`;
+  app.innerHTML = `<div class="sk" style="height:118px;margin-top:4px"></div><div class="sk" style="height:42px;margin-top:20px;border-radius:13px"></div>
+    <div class="sk" style="height:150px;margin-top:12px"></div><div class="sk" style="height:420px;margin-top:12px"></div>`;
 }
 function fail(msg){
   clearInterval(timer);
-  app.innerHTML = `<div class="err"><h1>Прогноз не загрузился</h1><p class="soft">${esc(msg)}</p><button class="btn" id="retry">Повторить</button></div>`;
-  document.getElementById('retry').onclick = load;
+  app.innerHTML = `<div class="err"><h1>Прогноз не загрузился</h1><p class="soft">${esc(msg)}</p><button class="btn press" id="retry">Повторить</button></div>`;
+  $('retry').onclick = load;
 }
-async function getJSON(url){
-  const r = await fetch(url, {cache: 'no-cache'});
-  if (!r.ok) throw new Error(`Сервер ответил ${r.status}.`);
-  return r.json();
-}
+async function getJSON(url){ const r = await fetch(url, {cache: 'no-cache'}); if (!r.ok) throw new Error(`Сервер ответил ${r.status}.`); return r.json(); }
 async function load(){
   skeleton();
   const [d, h] = await Promise.allSettled([getJSON(SRC), getJSON(HIST)]);
   if (d.status === 'rejected') return fail(navigator.onLine === false ? 'Нет подключения к интернету.' : d.reason.message || 'Ошибка сети.');
   D = d.value; H = h.status === 'fulfilled' && Array.isArray(h.value) ? h.value : null;
-  try { render(); } catch (e) { console.error(e); fail('Данные пришли в неожиданном формате.'); }
+  if (!D.horizons || !Object.keys(D.horizons).length) return fail('В данных нет ни одного срока.');
+  try { shown = false; chart && chart.remove(); chart = null; cone = []; shell(); update(); }
+  catch (e) { console.error(e); fail('Данные пришли в неожиданном формате.'); }
 }
 load();
 </script>

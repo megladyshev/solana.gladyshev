@@ -85,9 +85,9 @@ def main(dry=False):
 
     out = {"updated": now.isoformat(), "price": float(c.iloc[-1]), "change24h": float(c.iloc[-1] / c.iloc[-25] - 1),
            "spark": [round(float(v), 4) for v in c.iloc[-168:]], "main": cfg["main"], "event": None, "horizons": {},
-           # last 96 hourly candles for the chart: [open time (unix s), open, high, low, close]; open = previous close
+           # last 240 hourly candles (10 days) for the chart: [open time (unix s), open, high, low, close]; open = previous close
            "candles": [[int(t.timestamp()) - 3600, round(float(o), 4), round(float(h), 4), round(float(l), 4), round(float(x), 4)]
-                       for t, o, h, l, x in zip(sol.index[-96:], c.shift(1).iloc[-96:], sol["high"].iloc[-96:], sol["low"].iloc[-96:], c.iloc[-96:])]}
+                       for t, o, h, l, x in zip(sol.index[-240:], c.shift(1).iloc[-240:], sol["high"].iloc[-240:], sol["low"].iloc[-240:], c.iloc[-240:])]}
     storm_now = None
     for key, hc in cfg["horizons"].items():
         h, t = hc["h"], None
